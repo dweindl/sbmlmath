@@ -11,6 +11,10 @@ from sympy.logic.boolalg import Boolean, BooleanFalse, BooleanTrue
 
 from .species_symbol import SpeciesSymbol
 
+
+__all__ = ["SBMLMathMLParser"]
+
+
 mathml_ns = "http://www.w3.org/1998/Math/MathML"
 _ureg = UnitRegistry()
 _ureg.Quantity.name = property(fget=lambda s: f"({s})")

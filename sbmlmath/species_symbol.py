@@ -3,6 +3,8 @@ from typing import Literal, Optional
 
 import sympy as sp
 
+__all__ = ["SpeciesSymbol"]
+
 
 class SpeciesSymbol(sp.Dummy):
     """

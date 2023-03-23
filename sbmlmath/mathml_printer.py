@@ -7,6 +7,9 @@ from sympy.printing.mathml import MathMLContentPrinter
 from .species_symbol import SpeciesSymbol
 
 
+__all__ = ["MyMathMLContentPrinter"]
+
+
 class MyMathMLContentPrinter(MathMLContentPrinter):
     """MathML printer
 

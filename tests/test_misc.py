@@ -1,5 +1,8 @@
-from sbmlmath import *
+import libsbml
 import pytest
+import sympy as sp
+
+from sbmlmath import *
 
 
 @pytest.mark.xfail()
