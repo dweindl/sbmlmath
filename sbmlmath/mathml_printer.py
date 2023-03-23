@@ -48,7 +48,6 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
     def _print_SpeciesSymbol(self, sym: SpeciesSymbol):
         ci = self._print_Symbol(sym)
         if sym.representation_type:
-            # TODO should <math> should include multi-ns
             ci.setAttribute("multi:representationType", sym.representation_type)
         if sym.species_reference:
             ci.setAttribute("multi:speciesReference", sym.species_reference)
@@ -69,9 +68,10 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
             '<?xml version="1.0" encoding="UTF-8"?>\n' if with_prolog else ""
         )
 
-        # TODO: only include sbml_ns / multi_ns where required
+        sbml_ns = f" {self.sbml_ns}" if " sbml:" in mathml else ""
+        multi_ns = f" {self.multi_ns}" if " multi:" in mathml else ""
         return (
-            f"{prolog}<math {self.mathml_ns} {self.sbml_ns} {self.multi_ns}>\n"
+            f"{prolog}<math {self.mathml_ns}{sbml_ns}{multi_ns}>\n"
             f"{mathml}</math>"
         )
 
