@@ -12,12 +12,15 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
 
     * assumes all constants are dimensionless
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # TODO don't hardcode version / level
         self.mathml_ns = 'xmlns="http://www.w3.org/1998/Math/MathML"'
-        self.sbml_ns = 'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core"'
+        self.sbml_ns = (
+            'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core"'
+        )
         self.multi_ns = 'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1"'
 
     def _print_Symbol(self, sym):
@@ -35,11 +38,9 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
         ci = self._print_Symbol(sym)
         if sym.representation_type:
             # TODO should <math> should include multi-ns
-            ci.setAttribute("multi:representationType",
-                            sym.representation_type)
+            ci.setAttribute("multi:representationType", sym.representation_type)
         if sym.species_reference:
-            ci.setAttribute("multi:speciesReference",
-                            sym.species_reference)
+            ci.setAttribute("multi:speciesReference", sym.species_reference)
         return ci
 
     def doprint(self, expr, with_prolog=True, with_math=True):
@@ -53,38 +54,39 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
         if not with_math:
             return mathml
 
-        prolog = '<?xml version="1.0" encoding="UTF-8"?>\n' \
-            if with_prolog else ""
+        prolog = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n' if with_prolog else ""
+        )
 
         # TODO: only include sbml_ns / multi_ns where required
         return (
-            f'{prolog}<math {self.mathml_ns} {self.sbml_ns} {self.multi_ns}>\n'
-            f'{mathml}</math>'
+            f"{prolog}<math {self.mathml_ns} {self.sbml_ns} {self.multi_ns}>\n"
+            f"{mathml}</math>"
         )
 
     def _print_Number(self, e):
         res = super()._print_int(e)
-        res.setAttribute('sbml:units', 'dimensionless')
+        res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Rational(self, e):
         res = super()._print_int(e)
-        res.setAttribute('sbml:units', 'dimensionless')
+        res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_int(self, e):
         res = super()._print_int(e)
-        res.setAttribute('sbml:units', 'dimensionless')
+        res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Float(self, e):
         res = super()._print_Float(e)
-        res.setAttribute('sbml:units', 'dimensionless')
+        res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_One(self, e):
         res = super()._print_int(e)
-        res.setAttribute('sbml:units', 'dimensionless')
+        res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Quantity(self, e):
@@ -94,5 +96,5 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
             # TODO if Quantities are used in sympy expressions, they might
             #  units might get shuffled around and end up <apply>. In this case
             #  we skip settings units for now.
-            res.setAttribute('sbml:units', str(e.u))
+            res.setAttribute("sbml:units", str(e.u))
         return res

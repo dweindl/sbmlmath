@@ -10,7 +10,7 @@ def test_species_symbol_repr_type():
         'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core" '
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
         '<ci multi:representationType="sum">A</ci>'
-        '</math>'
+        "</math>"
     )
 
 
@@ -23,6 +23,5 @@ def test_species_symbol_spec_ref():
         'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core" '
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
         '<ci multi:speciesReference="ref_to_A">A</ci>'
-        '</math>'
+        "</math>"
     )
-

@@ -10,17 +10,17 @@ import pytest
 
 from sbmlmath import SBMLMathMLParser
 
-sbml_test_suite_root = os.environ.get('SBML_TEST_SUITE_ROOT', '')
+sbml_test_suite_root = os.environ.get("SBML_TEST_SUITE_ROOT", "")
 if not sbml_test_suite_root:
     pytest.skip("$SBML_TEST_SUITE_ROOT not set", allow_module_level=True)
 
-cases_root = Path(sbml_test_suite_root, 'cases', 'semantic')
+cases_root = Path(sbml_test_suite_root, "cases", "semantic")
 cases = sorted(cases_root.rglob("*-sbml-l3v2.xml"))
 assert len(cases)
+
+
 @pytest.mark.parametrize(
-    ('sbml_file', ),
-    [[file] for file in cases],
-    ids=map(lambda x: x.stem, cases)
+    ("sbml_file",), [[file] for file in cases], ids=map(lambda x: x.stem, cases)
 )
 def test_sbml(sbml_file):
     print()
@@ -33,8 +33,9 @@ def test_sbml(sbml_file):
 
     parser = SBMLMathMLParser()
     for element in sbml_model.getListOfAllElements():
-        if (get_math := getattr(element, 'getMath', None)) \
-                and (mathml := libsbml.writeMathMLToString(get_math())):
+        if (get_math := getattr(element, "getMath", None)) and (
+            mathml := libsbml.writeMathMLToString(get_math())
+        ):
             print(element.getId())
             print(mathml)
             try:

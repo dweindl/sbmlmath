@@ -20,14 +20,15 @@ class SpeciesSymbol(sp.Dummy):
     species_reference: SBML-multi spec 3.26.1. ID of a species reference in the
         same reaction.
     """
+
     _cache = {}
 
     def __new__(
-            cls, *args,
-            representation_type:
-            Optional[Literal['sum', 'numericValue']] = None,
-            species_reference: str = None,
-            **kwargs
+        cls,
+        *args,
+        representation_type: Optional[Literal["sum", "numericValue"]] = None,
+        species_reference: str = None,
+        **kwargs,
     ):
         # Cache instances.
         # If not done: (SpeciesSymbol("A") == SpeciesSymbol("A")) == False
@@ -46,9 +47,15 @@ class SpeciesSymbol(sp.Dummy):
         return obj
 
     def __repr__(self):
-        rt = f"representation_type={self.representation_type},"\
-            if self.representation_type else ""
-        sr = f"species_reference={self.species_reference}," \
-            if self.species_reference else ""
+        rt = (
+            f"representation_type={self.representation_type},"
+            if self.representation_type
+            else ""
+        )
+        sr = (
+            f"species_reference={self.species_reference},"
+            if self.species_reference
+            else ""
+        )
 
         return f"<{self.name}({rt}{sr})>"

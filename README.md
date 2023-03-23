@@ -1,15 +1,15 @@
 # sbmlmath - a Python library for handling SBML MathML
 
-This is Python library for interconverting [SymPy](https://github.com/sympy/sympy/) 
-expressions and [SBML](https://sbml.org/) MathML. 
-SBML uses a subset of [MathML](https://www.w3.org/Math/) that this library 
-tries to support. This is not (intended to be) a general MathML parser. 
+This is Python library for interconverting [SymPy](https://github.com/sympy/sympy/)
+expressions and [SBML](https://sbml.org/) MathML.
+SBML uses a subset of [MathML](https://www.w3.org/Math/) that this library
+tries to support. This is not (intended to be) a general MathML parser.
 
 Main functionality:
 
 * sympy -> SBML MathML
 * SBML MathML -> sympy
-  * in particular for cases where `sympy.sympify(libsbml.formulaToL3String(...))` 
+  * in particular for cases where `sympy.sympify(libsbml.formulaToL3String(...))`
     won't do the job
   * retaining unit annotations and other `<ci>` attributes
 

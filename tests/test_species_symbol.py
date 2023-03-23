@@ -13,10 +13,12 @@ def test_species_symbol_equality():
     assert sym1 != sym2
 
     # Test caching works
-    assert SpeciesSymbol("A", representation_type="sum") \
-           == SpeciesSymbol("A", representation_type="sum")
-    assert SpeciesSymbol("A", representation_type="sum") \
-           is SpeciesSymbol("A", representation_type="sum")
+    assert SpeciesSymbol("A", representation_type="sum") == SpeciesSymbol(
+        "A", representation_type="sum"
+    )
+    assert SpeciesSymbol("A", representation_type="sum") is SpeciesSymbol(
+        "A", representation_type="sum"
+    )
     assert SpeciesSymbol("A") is SpeciesSymbol("A")
 
 
@@ -33,7 +35,7 @@ def test_species_symbol_operations():
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
         '<apply><plus/><ci multi:representationType="sum">A</ci>'
         '<ci multi:speciesReference="ref_to_A">A</ci></apply>'
-        '</math>'
+        "</math>"
     )
 
     expr = sym1 * sym2
@@ -45,7 +47,7 @@ def test_species_symbol_operations():
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
         '<apply><times/><ci multi:representationType="sum">A</ci>'
         '<ci multi:speciesReference="ref_to_A">A</ci></apply>'
-        '</math>'
+        "</math>"
     )
 
     expr = sym1 + sym1 + sym2 * sym2
@@ -59,7 +61,7 @@ def test_species_symbol_operations():
         '<ci multi:representationType="sum">A</ci></apply>'
         '<apply><power/><ci multi:speciesReference="ref_to_A">A</ci>'
         '<cn sbml:units="dimensionless">2</cn></apply></apply>'
-        '</math>'
+        "</math>"
     )
 
     # check subs() works
@@ -75,7 +77,7 @@ def test_species_symbol_operations():
         '<ci multi:representationType="sum">A</ci></apply>'
         '<apply><power/><ci multi:speciesReference="ref_to_A">A</ci>'
         '<cn sbml:units="dimensionless">2</cn></apply></apply>'
-        '</math>'
+        "</math>"
     )
     sym_expr = SBMLMathMLParser().parse_str(mathml_exp)
     mathml_act = MyMathMLContentPrinter().doprint(sym_expr)
@@ -88,10 +90,9 @@ def test_species_symbol_operations():
         '<math xmlns="http://www.w3.org/1998/Math/MathML" '
         'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core" '
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
-        '<apply><plus/><apply><power/>'
+        "<apply><plus/><apply><power/>"
         '<ci multi:speciesReference="ref_to_A">A</ci>'
         '<cn sbml:units="dimensionless">2.0</cn></apply>'
         '<apply><times/><cn sbml:units="dimensionless">2.0</cn>'
         '<ci multi:representationType="sum">A</ci></apply></apply></math>'
     )
-

@@ -14,7 +14,7 @@ from .species_symbol import SpeciesSymbol
 mathml_ns = "http://www.w3.org/1998/Math/MathML"
 _ureg = UnitRegistry()
 _ureg.Quantity.name = property(fget=lambda s: f"({s})")
-_ureg.Quantity_sympy_ = lambda s: sp.sympify(f'{s.m}*{s.u:~}')
+_ureg.Quantity_sympy_ = lambda s: sp.sympify(f"{s.m}*{s.u:~}")
 
 mathml_op_sympy_trigonometric = {
     f"{{{mathml_ns}}}sin": sp.sin,
@@ -49,9 +49,10 @@ mathml_op_sympy_boolean = {
 }
 
 mathml_op_sympy = {
-    f"{{{mathml_ns}}}times":
-        lambda *args: reduce(operators.mul, args, sp.Integer(1)),
-    f"{{{mathml_ns}}}power": lambda base, exponent: base ** exponent,
+    f"{{{mathml_ns}}}times": lambda *args: reduce(
+        operators.mul, args, sp.Integer(1)
+    ),
+    f"{{{mathml_ns}}}power": lambda base, exponent: base**exponent,
     f"{{{mathml_ns}}}eq": sp.Equality,
     f"{{{mathml_ns}}}neq": sp.Unequality,
     f"{{{mathml_ns}}}lt": sp.StrictLessThan,
@@ -89,7 +90,7 @@ unary = {
     f"{{{mathml_ns}}}min",
     f"{{{mathml_ns}}}max",
     f"{{{mathml_ns}}}root",
-    *mathml_op_sympy_trigonometric
+    *mathml_op_sympy_trigonometric,
 }
 # n-ary functions
 n_ary = {
@@ -127,10 +128,10 @@ class SBMLMathMLParser:
         self.ureg = ureg or _ureg or UnitRegistry()
         # TODO configurable version
         #  TODO {prefix=>url}
-        self.sbml_core_ns = \
-            'http://www.sbml.org/sbml/level3/version2/core'
-        self.sbml_multi_ns = \
-            'http://www.sbml.org/sbml/level3/version1/multi/version1'
+        self.sbml_core_ns = "http://www.sbml.org/sbml/level3/version2/core"
+        self.sbml_multi_ns = (
+            "http://www.sbml.org/sbml/level3/version1/multi/version1"
+        )
 
     def parse_file(self, file_like) -> sp.Expr:
         element_tree = etree.parse(file_like)
@@ -143,11 +144,11 @@ class SBMLMathMLParser:
     def parse_str(self, mathml: str):
         # (fragile) workaround for libsbml dropping xmlns declarations for
         #  namespaces other than 'sbml'
-        if "multi:" in mathml and 'xmlns:multi' not in mathml:
+        if "multi:" in mathml and "xmlns:multi" not in mathml:
             math_element = '<math xmlns="http://www.w3.org/1998/Math/MathML"'
             mathml = mathml.replace(
                 math_element,
-                f'{math_element} xmlns:multi="{self.sbml_multi_ns}"'
+                f'{math_element} xmlns:multi="{self.sbml_multi_ns}"',
             )
         # end
 
@@ -158,7 +159,7 @@ class SBMLMathMLParser:
         if not element.tag.startswith(mathml_prefix):
             raise AssertionError(element.tag)
 
-        stripped_tag = element.tag[len(mathml_prefix):]
+        stripped_tag = element.tag[len(mathml_prefix) :]
 
         handler = f"handle_{stripped_tag}"
         if handler := getattr(self, handler, None):
@@ -181,23 +182,36 @@ class SBMLMathMLParser:
         sym_operands = list(map(self._parse_element, operands))
 
         # TODO cleanup; doesn't check properly if compatible with 2 args
-        if operator.tag not in (f"{{{mathml_ns}}}csymbol",
-                                f"{{{mathml_ns}}}ci") \
-                and (len(operands) == 1 and operator.tag not in unary
-                     or len(operands) > 2 and operator.tag not in n_ary):
+        if operator.tag not in (
+            f"{{{mathml_ns}}}csymbol",
+            f"{{{mathml_ns}}}ci",
+        ) and (
+            len(operands) == 1
+            and operator.tag not in unary
+            or len(operands) > 2
+            and operator.tag not in n_ary
+        ):
             raise AssertionError(
                 f"Unknown arity for {operator.tag} ({operands}"
             )
 
         if operator.tag.startswith(f"{{{mathml_ns}}}"):
-            stripped_tag = operator.tag[len(f"{{{mathml_ns}}}"):]
-            if len(operands) == 1 \
-                    and stripped_tag in {'plus', 'times', 'and', 'or',
-                                         'xor', 'min', 'max'}:
+            stripped_tag = operator.tag[len(f"{{{mathml_ns}}}") :]
+            if len(operands) == 1 and stripped_tag in {
+                "plus",
+                "times",
+                "and",
+                "or",
+                "xor",
+                "min",
+                "max",
+            }:
                 return sym_operands[0]
 
-            if stripped_tag in ("gt", "lt", "leq", "geq", "eq") \
-                    and len(operands) >= 3:
+            if (
+                stripped_tag in ("gt", "lt", "leq", "geq", "eq")
+                and len(operands) >= 3
+            ):
                 # n-ary relational operators:
                 #  a < b < c cannot directory be represented in sympy.
                 #  either change to `a < b and b < c`, to be sympy-evaluatable,
@@ -211,8 +225,7 @@ class SBMLMathMLParser:
                 expr = True
                 for i in range(len(sym_operands) - 1):
                     expr = sp.And(
-                        expr, sym_operator(sym_operands[i],
-                                           sym_operands[i + 1])
+                        expr, sym_operator(sym_operands[i], sym_operands[i + 1])
                     )
                 return expr
 
@@ -274,7 +287,7 @@ class SBMLMathMLParser:
             # TODO store definitionURL somewhere?
             # TODO need to be able to distinguish between lambdas referenced
             #  through ci and functions from csymbols
-            assert operator.attrib['encoding'] == "text"
+            assert operator.attrib["encoding"] == "text"
             return sp.Function(operator.text.strip())(*sym_operands)
 
         if operator.tag == f"{{{mathml_ns}}}ci":
@@ -287,22 +300,22 @@ class SBMLMathMLParser:
         """Handle identifiers."""
         handled_attrs = {
             # TODO: remove after fixing xmlns in model
-            'multi:representationType',
-            'multi:speciesReference',
-            f'{{{self.sbml_multi_ns}}}representationType',
-            f'{{{self.sbml_multi_ns}}}speciesReference',
+            "multi:representationType",
+            "multi:speciesReference",
+            f"{{{self.sbml_multi_ns}}}representationType",
+            f"{{{self.sbml_multi_ns}}}speciesReference",
         }
         if unhandled_attrs := (set(element.attrib.keys()) - handled_attrs):
             raise NotImplementedError(
-                f"Unhandled <ci> attributes: {unhandled_attrs}")
+                f"Unhandled <ci> attributes: {unhandled_attrs}"
+            )
 
         representation_type = element.attrib.get(
-            f'{{{self.sbml_multi_ns}}}representationType', None) \
-                              or element.attrib.get('multi:representationType', None)
+            f"{{{self.sbml_multi_ns}}}representationType", None
+        ) or element.attrib.get("multi:representationType", None)
         species_reference = element.attrib.get(
-            f'{{{self.sbml_multi_ns}}}speciesReference', None) \
-                            or element.attrib.get('multi:speciesReference',
-                                                  None)
+            f"{{{self.sbml_multi_ns}}}speciesReference", None
+        ) or element.attrib.get("multi:speciesReference", None)
         symbol_name = element.text.strip()
         if representation_type or species_reference:
             return SpeciesSymbol(
@@ -315,32 +328,32 @@ class SBMLMathMLParser:
     def handle_cn(self, element: etree._Element) -> sp.Expr:
         """Handle numbers."""
         handled_attrs = {
-            'type',
-            f'{{{self.sbml_core_ns}}}units',
+            "type",
+            f"{{{self.sbml_core_ns}}}units",
         }
         if unhandled_attrs := (set(element.attrib.keys()) - handled_attrs):
             raise NotImplementedError(
-                f"Unhandled <cn> attributes: {unhandled_attrs}")
-        dtype = element.attrib.get('type', 'real')
+                f"Unhandled <cn> attributes: {unhandled_attrs}"
+            )
+        dtype = element.attrib.get("type", "real")
         converter = {
-            'real':
-                lambda element: sp.Float(element.text),
-            'integer':
-                lambda element: sp.Integer(element.text),
-            'rational':
-                lambda element: sp.Rational(element.text, element[0].tail),
-            'e-notation':
+            "real": lambda element: sp.Float(element.text),
+            "integer": lambda element: sp.Integer(element.text),
+            "rational": lambda element: sp.Rational(
+                element.text, element[0].tail
+            ),
+            "e-notation":
             # this won't cycle. we don't have a corresponding
             #  representation in sympy
-                lambda element: sp.Float(
-                    float(element.text) * 10 ** int(element[0].tail)
-                ),
+            lambda element: sp.Float(
+                float(element.text) * 10 ** int(element[0].tail)
+            ),
         }.get(dtype)
         if not converter:
             raise NotImplementedError(f"Unhandled type: {dtype}")
         obj = converter(element)
 
-        if units := element.attrib.get(f'{{{self.sbml_core_ns}}}units', None):
+        if units := element.attrib.get(f"{{{self.sbml_core_ns}}}units", None):
             if units not in self.ureg:
                 # TODO fixme: replace rhs by base units
                 #  this requires access to the underlying SBML model to access
@@ -368,12 +381,16 @@ class SBMLMathMLParser:
                         "Cannot handle non-boolean piecewise conditions: "
                         f"{cond}"
                     )
-                expr_cond_pairs.append((self._parse_element(e[0]), cond), )
+                expr_cond_pairs.append(
+                    (self._parse_element(e[0]), cond),
+                )
             elif e.tag == f"{{{mathml_ns}}}otherwise":
                 # may occur only as last condition
                 assert e is element[-1]
                 assert len(e) == 1
-                expr_cond_pairs.append((self._parse_element(e[0]), True), )
+                expr_cond_pairs.append(
+                    (self._parse_element(e[0]), True),
+                )
             else:
                 raise AssertionError(e.tag)
         return sp.Piecewise(*expr_cond_pairs)
@@ -398,7 +415,7 @@ class SBMLMathMLParser:
         return self._parse_element(element[0])
 
     def handle_csymbol(self, element: etree._Element) -> sp.Expr:
-        assert element.attrib['encoding'] == "text"
+        assert element.attrib["encoding"] == "text"
         return sp.Dummy(element.text.strip())
 
 

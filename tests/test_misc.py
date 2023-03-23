@@ -18,8 +18,9 @@ def test_large_mathml():
     print(len(mathml_exp))
     assert len(mathml_exp) >= 2**15
 
-    assert SBMLMathMLParser().parse_str(mathml_exp) \
-           == sp.sympify("600 * some_long_identifier_whose_name_doesnt_matter")
+    assert SBMLMathMLParser().parse_str(mathml_exp) == sp.sympify(
+        "600 * some_long_identifier_whose_name_doesnt_matter"
+    )
 
 
 def test_multi_xmlns_works():
