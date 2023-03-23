@@ -5,10 +5,10 @@ import sympy as sp
 from sbmlmath import *
 
 
-@pytest.mark.xfail()
 def test_large_mathml():
-    """On some setups, lxml.etree.iterparse simply truncates long input
-    (>2**15 chars); lxml.etree.parse seems to do fine.
+    """
+    lxml.etree.iterparse simply truncates long input (>2**15 chars);
+    lxml.etree.parse seems to do fine.
     """
     header = """<?xml version="1.0" encoding="UTF-8"?>
     <math xmlns="http://www.w3.org/1998/Math/MathML" xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">
