@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sbmlmath"
+authors = [
+    {name = "Daniel Weindl", email = "sci@danielweindl.de"},
+]
+description = "SBML Math <-> SymPy"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "BSD-3-Clause"}
+dependencies = [
+    "python-libsbml",
+    "sympy",
+    "pint",
+    "lxml",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = ["pytest",]
+
+[tool.black]
+line-length = 80

@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron:  '48 4 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-
+
+    - name: Cache / restore SBML test suite
+      id: cache-sbml-test-suite
+      uses: actions/cache@v3
+      with:
+        path: sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite
+
+    - name: Download SBML test suite
+      if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
+      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+
+    - name: Install local packages
+      run: |
+        pip install .[test]
+
+    - name: Unit tests
+      env:
+          SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
+      run: pytest -vv
