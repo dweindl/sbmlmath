@@ -18,11 +18,11 @@ Main functionality:
 ## Usage
 
 ```python
-from sbmlmath import MyMathMLContentPrinter, SBMLMathMLParser
+from sbmlmath import SBMLMathMLPrinter, SBMLMathMLParser
 import sympy as sp
 
 sympy_expr = sp.sympify("A ** B + exp(C) * D")
-mathml = MyMathMLContentPrinter().doprint(sympy_expr)
+mathml = SBMLMathMLPrinter().doprint(sympy_expr)
 print(mathml)
 
 cycled_sympy = SBMLMathMLParser().parse_str(mathml)

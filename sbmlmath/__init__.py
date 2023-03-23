@@ -4,12 +4,12 @@ import libsbml
 import sympy as sp
 
 from .mathml_parser import SBMLMathMLParser
-from .mathml_printer import MyMathMLContentPrinter
+from .mathml_printer import SBMLMathMLPrinter
 from .species_symbol import SpeciesSymbol
 
 __all__ = [
     "SBMLMathMLParser",
-    "MyMathMLContentPrinter",
+    "SBMLMathMLPrinter",
     "SpeciesSymbol",
     "sympy_to_sbml_math",
     "sbml_math_to_sympy",
@@ -18,7 +18,7 @@ __all__ = [
 
 def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
     """Convert sympy expression to SBML math ASTNode"""
-    mathml = MyMathMLContentPrinter().doprint(sp_expr)
+    mathml = SBMLMathMLPrinter().doprint(sp_expr)
 
     if ast_node := libsbml.readMathMLFromString(mathml):
         return ast_node

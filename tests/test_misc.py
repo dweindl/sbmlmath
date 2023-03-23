@@ -29,7 +29,7 @@ def test_large_mathml():
 def test_multi_xmlns_works():
     """Test workaround for mathml handling in libsbml, where some xmlns
     declarations may get dropped."""
-    xml = MyMathMLContentPrinter().doprint(
+    xml = SBMLMathMLPrinter().doprint(
         SpeciesSymbol("a", representation_type="sum")
     )
     assert "xmlns:multi" in xml

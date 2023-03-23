@@ -24,7 +24,7 @@ def test_species_symbol_operations():
     sym2 = SpeciesSymbol("A", species_reference="ref_to_A")
 
     expr = sym1 + sym2
-    mathml = MyMathMLContentPrinter().doprint(expr)
+    mathml = SBMLMathMLPrinter().doprint(expr)
     assert mathml == (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<math xmlns="http://www.w3.org/1998/Math/MathML" '
@@ -35,7 +35,7 @@ def test_species_symbol_operations():
     )
 
     expr = sym1 * sym2
-    mathml = MyMathMLContentPrinter().doprint(expr)
+    mathml = SBMLMathMLPrinter().doprint(expr)
     assert mathml == (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<math xmlns="http://www.w3.org/1998/Math/MathML" '
@@ -46,7 +46,7 @@ def test_species_symbol_operations():
     )
 
     expr = sym1 + sym1 + sym2 * sym2
-    mathml = MyMathMLContentPrinter().doprint(expr)
+    mathml = SBMLMathMLPrinter().doprint(expr)
     assert mathml == (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<math xmlns="http://www.w3.org/1998/Math/MathML" '
@@ -75,7 +75,7 @@ def test_species_symbol_operations():
         "</math>"
     )
     sym_expr = SBMLMathMLParser().parse_str(mathml_exp)
-    mathml_act = MyMathMLContentPrinter().doprint(sym_expr)
+    mathml_act = SBMLMathMLPrinter().doprint(sym_expr)
 
     # not an exact match, but close enough, for now
     #  TODO - some term re-ordering occurs

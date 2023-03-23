@@ -7,10 +7,10 @@ from sympy.printing.mathml import MathMLContentPrinter
 from .species_symbol import SpeciesSymbol
 
 
-__all__ = ["MyMathMLContentPrinter"]
+__all__ = ["SBMLMathMLPrinter"]
 
 
-class MyMathMLContentPrinter(MathMLContentPrinter):
+class SBMLMathMLPrinter(MathMLContentPrinter):
     """MathML printer
 
     * assumes all constants are dimensionless
