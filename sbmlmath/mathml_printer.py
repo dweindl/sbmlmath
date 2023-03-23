@@ -13,7 +13,12 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
     * assumes all constants are dimensionless
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, literals_dimensionless=True, **kwargs):
+        """Construct.
+
+        :param literals_dimensionless:
+            Assume numeric literals are dimensionless.
+        """
         super().__init__(*args, **kwargs)
 
         # TODO don't hardcode version / level
@@ -22,6 +27,7 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
             'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core"'
         )
         self.multi_ns = 'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1"'
+        self.literals_dimensionless = literals_dimensionless
 
     def _print_Symbol(self, sym):
         """
@@ -66,27 +72,32 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
 
     def _print_Number(self, e):
         res = super()._print_int(e)
-        res.setAttribute("sbml:units", "dimensionless")
+        if self.literals_dimensionless:
+            res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Rational(self, e):
         res = super()._print_int(e)
-        res.setAttribute("sbml:units", "dimensionless")
+        if self.literals_dimensionless:
+            res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_int(self, e):
         res = super()._print_int(e)
-        res.setAttribute("sbml:units", "dimensionless")
+        if self.literals_dimensionless:
+            res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Float(self, e):
         res = super()._print_Float(e)
-        res.setAttribute("sbml:units", "dimensionless")
+        if self.literals_dimensionless:
+            res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_One(self, e):
         res = super()._print_int(e)
-        res.setAttribute("sbml:units", "dimensionless")
+        if self.literals_dimensionless:
+            res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Quantity(self, e):
