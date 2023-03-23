@@ -13,7 +13,14 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
     * assumes all constants are dimensionless
     """
 
-    def __init__(self, *args, literals_dimensionless=True, **kwargs):
+    def __init__(
+        self,
+        *args,
+        literals_dimensionless=True,
+        sbml_level: int = 3,
+        sbml_version: int = 2,
+        **kwargs,
+    ):
         """Construct.
 
         :param literals_dimensionless:
@@ -21,12 +28,10 @@ class MyMathMLContentPrinter(MathMLContentPrinter):
         """
         super().__init__(*args, **kwargs)
 
-        # TODO don't hardcode version / level
         self.mathml_ns = 'xmlns="http://www.w3.org/1998/Math/MathML"'
-        self.sbml_ns = (
-            'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core"'
-        )
-        self.multi_ns = 'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1"'
+        self.sbml_ns = f'xmlns:sbml="http://www.sbml.org/sbml/level{sbml_level}/version{sbml_version}/core"'
+        # note: so far, there is no L3V2-multi
+        self.multi_ns = f'xmlns:multi="http://www.sbml.org/sbml/level{sbml_level}/version1/multi/version1"'
         self.literals_dimensionless = literals_dimensionless
 
     def _print_Symbol(self, sym):
