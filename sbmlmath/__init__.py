@@ -6,13 +6,14 @@ import sympy as sp
 from .mathml_parser import SBMLMathMLParser
 from .mathml_printer import SBMLMathMLPrinter
 from .species_symbol import SpeciesSymbol
-from .csymbol import CSymbol
+from .csymbol import *
 
 __all__ = [
     "SBMLMathMLParser",
     "SBMLMathMLPrinter",
     "SpeciesSymbol",
     "CSymbol",
+    "TimeSymbol",
     "sympy_to_sbml_math",
     "sbml_math_to_sympy",
 ]

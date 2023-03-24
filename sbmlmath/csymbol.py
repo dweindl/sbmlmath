@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 import sympy as sp
 
-__all__ = ["CSymbol"]
+__all__ = ["CSymbol", "TimeSymbol"]
 
 
 class CSymbol(sp.Dummy):
@@ -22,7 +22,7 @@ class CSymbol(sp.Dummy):
         cls,
         *args,
         definition_url: str,
-        encoding: str,
+        encoding: str = "text",
         **kwargs,
     ):
         # Cache instances.
@@ -47,3 +47,32 @@ class CSymbol(sp.Dummy):
 
     def __repr__(self):
         return f"<{self.name}({self.definition_url})>"
+
+    def __eq__(self, other):
+        if not isinstance(other, CSymbol):
+            return False
+
+        # if they represent the same value, they are equal
+        return self.definition_url == other.definition_url
+
+    def __hash__(self):
+        # if we define __eq__, we also need __hash__ to use instances in sympy
+        #  expressions
+        return hash(self.definition_url)
+
+
+class TimeSymbol(CSymbol):
+    """Time symbol.
+
+    Symbol representing the current simulation time.
+    """
+
+    def __new__(
+        cls,
+        name: str,
+    ):
+        return super().__new__(
+            cls,
+            name=name,
+            definition_url="http://www.sbml.org/sbml/symbols/time",
+        )
