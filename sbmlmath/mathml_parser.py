@@ -288,7 +288,9 @@ class SBMLMathMLParser:
             return (a - a % b) / b
 
         if operator.tag == f"{{{mathml_ns}}}csymbol":
-            # TODO store definitionURL somewhere?
+            # examples: rateOf, delay, distributions from distrib package
+            #  https://synonym.caltech.edu/documents/specifications/level-3/version-1/distrib/
+            # TODO store definitionURL somewhere
             # TODO need to be able to distinguish between lambdas referenced
             #  through ci and functions from csymbols
             assert operator.attrib["encoding"] == "text"
