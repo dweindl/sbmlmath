@@ -10,7 +10,7 @@ from pint import UnitRegistry
 from sympy.logic.boolalg import Boolean, BooleanFalse, BooleanTrue
 
 from .species_symbol import SpeciesSymbol
-
+from .csymbol import CSymbol
 
 __all__ = ["SBMLMathMLParser"]
 
@@ -422,7 +422,11 @@ class SBMLMathMLParser:
 
     def handle_csymbol(self, element: etree._Element) -> sp.Expr:
         assert element.attrib["encoding"] == "text"
-        return sp.Dummy(element.text.strip())
+        return CSymbol(
+            element.text.strip(),
+            encoding=element.attrib["encoding"],
+            definition_url=element.attrib["definitionURL"],
+        )
 
 
 def _bool2num(x):

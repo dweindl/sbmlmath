@@ -91,3 +91,15 @@ def test_libsbml_mathml_preserves_sbml_xmlns():
     new_mathml = libsbml.writeMathMLToString(ast_node)
     print(new_mathml)
     assert "xmlns:sbml" in new_mathml
+
+
+def test_cycle_csymbol():
+    """Check proper handling of csymbols"""
+    mathml = """<?xml version="1.0" encoding="UTF-8"?>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/avogadro"> avogadro </csymbol>
+        </math>
+    """
+    sym = SBMLMathMLParser().parse_str(mathml)
+    assert isinstance(sym, CSymbol)
+    assert "symbols/avogadro" in SBMLMathMLPrinter().doprint(sym)

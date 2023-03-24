@@ -5,6 +5,7 @@ import sympy as sp
 from sympy.printing.mathml import MathMLContentPrinter
 
 from .species_symbol import SpeciesSymbol
+from .csymbol import CSymbol
 
 
 __all__ = ["SBMLMathMLPrinter"]
@@ -117,3 +118,13 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             #  we skip settings units for now.
             res.setAttribute("sbml:units", str(e.u))
         return res
+
+    def _print_CSymbol(self, e: CSymbol):
+        dom_element = self.dom.createElement("csymbol")
+        dom_element.appendChild(self.dom.createTextNode(str(e)))
+        if e.definition_url:
+            dom_element.setAttribute("definitionURL", e.definition_url)
+        if e.encoding:
+            dom_element.setAttribute("encoding", e.encoding)
+
+        return dom_element
