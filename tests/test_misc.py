@@ -35,7 +35,10 @@ def test_multi_xmlns_works():
     assert "xmlns:multi" in xml
     ast_node = libsbml.readMathMLFromString(xml)
     new_xml = libsbml.writeMathMLToString(ast_node)
-    assert "xmlns:multi" not in new_xml
+    if tuple(libsbml.__version__.split(".")) < ("5", "20", "0"):
+        assert "xmlns:multi" not in new_xml
+    else:
+        assert "xmlns:multi" in new_xml
 
     sym = SBMLMathMLParser().parse_str(new_xml)
     print(sym)
@@ -62,7 +65,6 @@ def test_math_dimensionless():
     sbml_math_to_sympy(sympy_to_sbml_math(sp.Integer(1)))
 
 
-@pytest.mark.xfail(strict=True)
 def test_libsbml_mathml_drops_multi_xmlns():
     mathml = (
         '<?xml version="1.0" encoding="UTF-8"?>'
@@ -75,7 +77,10 @@ def test_libsbml_mathml_drops_multi_xmlns():
     ast_node = libsbml.readMathMLFromString(mathml)
     new_mathml = libsbml.writeMathMLToString(ast_node)
     print(new_mathml)
-    assert "xmlns:multi" in new_mathml
+    if tuple(libsbml.__version__.split(".")) < ("5", "20", "0"):
+        assert "xmlns:multi" not in new_mathml
+    else:
+        assert "xmlns:multi" in new_mathml
 
 
 def test_libsbml_mathml_preserves_sbml_xmlns():

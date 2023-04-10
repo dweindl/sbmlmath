@@ -146,8 +146,8 @@ class SBMLMathMLParser:
             return self._parse_element(element)
 
     def parse_str(self, mathml: str):
-        # (fragile) workaround for libsbml dropping xmlns declarations for
-        #  namespaces other than 'sbml'
+        # (fragile) workaround for libsbml<5.20.0 dropping xmlns declarations
+        #  for namespaces other than 'sbml'
         if "multi:" in mathml and "xmlns:multi" not in mathml:
             math_element = '<math xmlns="http://www.w3.org/1998/Math/MathML"'
             mathml = mathml.replace(
