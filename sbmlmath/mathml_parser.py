@@ -3,7 +3,7 @@ import contextlib
 import operator as operators
 from functools import reduce
 from io import BytesIO
-
+from typing import Union
 import sympy as sp
 from lxml import etree
 from pint import UnitRegistry
@@ -128,13 +128,20 @@ class SBMLMathMLParser:
     section 3.4
     """
 
-    def __init__(self, ureg: UnitRegistry = None):
+    def __init__(
+        self,
+        level: Union[int, str] = 3,
+        version: Union[int, str] = 2,
+        ureg: UnitRegistry = None,
+    ):
         self.ureg = ureg or _ureg or UnitRegistry()
-        # TODO configurable version
+        self.sbml_core_ns = (
+            f"http://www.sbml.org/sbml/level{level}/version{version}/core"
+        )
         #  TODO {prefix=>url}
-        self.sbml_core_ns = "http://www.sbml.org/sbml/level3/version2/core"
         self.sbml_multi_ns = (
-            "http://www.sbml.org/sbml/level3/version1/multi/version1"
+            # L3V2 doesn't work
+            f"http://www.sbml.org/sbml/level{level}/version1/multi/version1"
         )
 
     def parse_file(self, file_like) -> sp.Expr:
