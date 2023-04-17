@@ -108,3 +108,22 @@ def test_cycle_csymbol():
     sym = SBMLMathMLParser().parse_str(mathml)
     assert isinstance(sym, CSymbol)
     assert "symbols/avogadro" in SBMLMathMLPrinter().doprint(sym)
+
+
+def test_cfunction():
+    mathml = """<?xml version="1.0" encoding="UTF-8"?>
+            <math xmlns="http://www.w3.org/1998/Math/MathML">
+               <apply xmlns="http://www.w3.org/1998/Math/MathML">
+                   <plus/>
+                   <apply>
+                     <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/delay"> delay </csymbol>
+                     <ci> Q </ci>
+                     <cn type="integer"> 1 </cn>
+                   </apply>
+                 </apply>
+        </math>
+    """
+    sym = SBMLMathMLParser().parse_str(mathml)
+    assert isinstance(sym, sp.Function)
+    assert sym.definition_url == "http://www.sbml.org/sbml/symbols/delay"
+    assert sym.name == "delay"

@@ -11,6 +11,7 @@ from sympy.logic.boolalg import Boolean, BooleanFalse, BooleanTrue
 
 from .species_symbol import SpeciesSymbol
 from .csymbol import CSymbol
+from .cfunction import CFunction
 
 __all__ = ["SBMLMathMLParser"]
 
@@ -296,16 +297,15 @@ class SBMLMathMLParser:
 
         if operator.tag == f"{{{mathml_ns}}}csymbol":
             # examples: rateOf, delay, distributions from distrib package
-            #  https://synonym.caltech.edu/documents/specifications/level-3/version-1/distrib/
-            # TODO store definitionURL somewhere
-            # TODO need to be able to distinguish between lambdas referenced
-            #  through ci and functions from csymbols
             assert operator.attrib["encoding"] == "text"
-            return sp.Function(operator.text.strip())(*sym_operands)
+            return CFunction(
+                operator.text.strip(),
+                definition_url=operator.attrib["definitionURL"],
+            )(*sym_operands)
 
         if operator.tag == f"{{{mathml_ns}}}ci":
             assert not operator.attrib
-            return sp.Function(operator.text.strip())(*sym_operands)
+            return sp.Function(operator.text.strip(), real=True)(*sym_operands)
 
         raise NotImplementedError(f"Unsupported operator {operator.tag}.")
 

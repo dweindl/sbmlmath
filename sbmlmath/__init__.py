@@ -7,12 +7,15 @@ from .mathml_parser import SBMLMathMLParser
 from .mathml_printer import SBMLMathMLPrinter
 from .species_symbol import SpeciesSymbol
 from .csymbol import *
+from .cfunction import *
+
 
 __all__ = [
     "SBMLMathMLParser",
     "SBMLMathMLPrinter",
     "SpeciesSymbol",
     "CSymbol",
+    "CFunction",
     "TimeSymbol",
     "sympy_to_sbml_math",
     "sbml_math_to_sympy",

@@ -1,4 +1,4 @@
-"""<csymbol> related functionality"""
+"""Handling of <csymbol> constants"""
 from typing import Literal, Optional
 
 import sympy as sp
@@ -13,7 +13,7 @@ class CSymbol(sp.Dummy):
     Represents e.g.:
     ``<csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/avogadro"> avogadro </csymbol>``
 
-    See also https://www.w3.org/TR/MathML2/chapter4.html#contm.deffun
+    See also https://www.w3.org/TR/MathML2/chapter4.html#contm.csymbol
     """
 
     _cache = {}
