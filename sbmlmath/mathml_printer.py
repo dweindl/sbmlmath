@@ -86,6 +86,10 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         return res
 
     def _print_Rational(self, e):
+        if e.q == 1:
+            # don't divide by one
+            return self._print_int(e.p)
+
         res = self.dom.createElement("cn")
         res.setAttribute("type", "rational")
         res.appendChild(self.dom.createTextNode(f"{e.p} <sep/> {e.q}"))
