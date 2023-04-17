@@ -80,19 +80,20 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         )
 
     def _print_Number(self, e):
-        res = super()._print_int(e)
+        res = self._print_int(e)
         if self.literals_dimensionless:
             res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_Rational(self, e):
-        res = super()._print_int(e)
+        res = self._print_int(e)
         if self.literals_dimensionless:
             res.setAttribute("sbml:units", "dimensionless")
         return res
 
     def _print_int(self, e):
         res = super()._print_int(e)
+        res.setAttribute("type", "integer")
         if self.literals_dimensionless:
             res.setAttribute("sbml:units", "dimensionless")
         return res
@@ -104,7 +105,7 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         return res
 
     def _print_One(self, e):
-        res = super()._print_int(e)
+        res = self._print_int(e)
         if self.literals_dimensionless:
             res.setAttribute("sbml:units", "dimensionless")
         return res
