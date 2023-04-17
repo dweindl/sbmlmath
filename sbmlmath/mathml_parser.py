@@ -58,12 +58,16 @@ mathml_op_sympy = {
         operators.mul, args, sp.Integer(1)
     ),
     f"{{{mathml_ns}}}power": lambda base, exponent: base**exponent,
-    f"{{{mathml_ns}}}eq": sp.Equality,
-    f"{{{mathml_ns}}}neq": sp.Unequality,
-    f"{{{mathml_ns}}}lt": sp.StrictLessThan,
-    f"{{{mathml_ns}}}gt": sp.StrictGreaterThan,
-    f"{{{mathml_ns}}}geq": sp.GreaterThan,
-    f"{{{mathml_ns}}}leq": sp.LessThan,
+    f"{{{mathml_ns}}}eq": lambda *args: sp.Equality(*args, evaluate=False),
+    f"{{{mathml_ns}}}neq": lambda *args: sp.Unequality(*args, evaluate=False),
+    f"{{{mathml_ns}}}lt": lambda *args: sp.StrictLessThan(
+        *args, evaluate=False
+    ),
+    f"{{{mathml_ns}}}gt": lambda *args: sp.StrictGreaterThan(
+        *args, evaluate=False
+    ),
+    f"{{{mathml_ns}}}geq": lambda *args: sp.GreaterThan(*args, evaluate=False),
+    f"{{{mathml_ns}}}leq": lambda *args: sp.LessThan(*args, evaluate=False),
     f"{{{mathml_ns}}}max": sp.Max,
     f"{{{mathml_ns}}}min": sp.Min,
     f"{{{mathml_ns}}}abs": sp.Abs,
@@ -350,6 +354,8 @@ class SBMLMathMLParser:
             )
         dtype = element.attrib.get("type", "real")
         converter = {
+            # TODO
+            #  always parse as rational to avoid 0.1 -> 0.10000000000000001 ?
             "real": lambda element: sp.Float(element.text),
             "integer": lambda element: sp.Integer(element.text),
             "rational": lambda element: sp.Rational(
@@ -406,9 +412,10 @@ class SBMLMathMLParser:
                 )
             else:
                 raise AssertionError(e.tag)
-        return sp.Piecewise(*expr_cond_pairs)
+        return sp.Piecewise(*expr_cond_pairs, evaluate=False)
 
     def handle_lambda(self, element: etree._Element) -> sp.Expr:
+        # See https://www.w3.org/TR/MathML2/chapter4.html#id.4.2.1.7
         # collect arguments / bound variables
         args = []
         for e in element[:-1]:
