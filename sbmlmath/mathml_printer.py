@@ -86,7 +86,10 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         return res
 
     def _print_Rational(self, e):
-        res = self._print_int(e)
+        res = self.dom.createElement("cn")
+        res.setAttribute("type", "rational")
+        res.appendChild(self.dom.createTextNode(f"{e.p} <sep/> {e.q}"))
+
         if self.literals_dimensionless:
             res.setAttribute("sbml:units", "dimensionless")
         return res
