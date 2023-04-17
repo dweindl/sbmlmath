@@ -138,6 +138,7 @@ class SBMLMathMLParser:
         level: Union[int, str] = 3,
         version: Union[int, str] = 2,
         ureg: UnitRegistry = None,
+        floats_as_rationals=True,
     ):
         self.ureg = ureg or _ureg or UnitRegistry()
         self.sbml_core_ns = (
@@ -148,7 +149,7 @@ class SBMLMathMLParser:
             # L3V2 doesn't work
             f"http://www.sbml.org/sbml/level{level}/version1/multi/version1"
         )
-        self.floats_as_rationals = True
+        self.floats_as_rationals = floats_as_rationals
 
     def parse_file(self, file_like) -> sp.Expr:
         element_tree = etree.parse(file_like)
