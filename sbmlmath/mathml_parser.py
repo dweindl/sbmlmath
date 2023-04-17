@@ -148,6 +148,7 @@ class SBMLMathMLParser:
             # L3V2 doesn't work
             f"http://www.sbml.org/sbml/level{level}/version1/multi/version1"
         )
+        self.floats_as_rationals = True
 
     def parse_file(self, file_like) -> sp.Expr:
         element_tree = etree.parse(file_like)
@@ -354,9 +355,9 @@ class SBMLMathMLParser:
             )
         dtype = element.attrib.get("type", "real")
         converter = {
-            # TODO
-            #  always parse as rational to avoid 0.1 -> 0.10000000000000001 ?
-            "real": lambda element: sp.Float(element.text),
+            "real": (lambda element: sp.Rational(element.text))
+            if self.floats_as_rationals
+            else lambda element: sp.Float(element.text),
             "integer": lambda element: sp.Integer(element.text),
             "rational": lambda element: sp.Rational(
                 element.text, element[0].tail
