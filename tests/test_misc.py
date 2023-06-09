@@ -129,4 +129,16 @@ def test_cfunction():
     assert sym.name == "delay"
     assert sym == delay(sp.Symbol("Q"), sp.Integer(1))
 
+def test_print_cfunction():
+    expected = (
+        """<?xml version="1.0" encoding="UTF-8"?>\n<math xmlns="http://www.w3.org/1998/Math/MathML" """
+        'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">\n'
+        '<apply><csymbol definitionURL="http://www.sbml.org/sbml/symbols/delay" encoding="text">delay</csymbol>'
+        '<ci>Q</ci><cn type="integer" sbml:units="dimensionless">1</cn></apply></math>'
+    )
+    sym = delay(sp.Symbol("Q"), sp.Integer(1))
+    printed_mathml = SBMLMathMLPrinter().doprint(sym)
+    assert printed_mathml == expected
+
+
 

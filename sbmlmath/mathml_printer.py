@@ -136,3 +136,23 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             dom_element.setAttribute("encoding", e.encoding)
 
         return dom_element
+
+    def _print_Function(self, e):
+        if hasattr(e, "definition_url"):
+            return self._print_CFunction(e)
+        return super()._print_Function(e)
+
+    def _print_CFunction(self, e):
+        dom_element = self.dom.createElement("apply")
+        csymbol = self.dom.createElement("csymbol")
+        csymbol.appendChild(self.dom.createTextNode(e.name))
+
+        if e.definition_url:
+            csymbol.setAttribute("definitionURL", e.definition_url)
+        if e.encoding:
+            csymbol.setAttribute("encoding", e.encoding)
+        dom_element.appendChild(csymbol)
+        for arg in e.args:
+            dom_element.appendChild(self._print(arg))
+
+        return dom_element
