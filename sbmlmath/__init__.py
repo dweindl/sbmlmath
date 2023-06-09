@@ -14,11 +14,11 @@ __all__ = [
     "SBMLMathMLParser",
     "SBMLMathMLPrinter",
     "SpeciesSymbol",
-    "CSymbol",
-    "CFunction",
     "TimeSymbol",
     "sympy_to_sbml_math",
     "sbml_math_to_sympy",
+    *csymbol.__all__,
+    *cfunction.__all__,
 ]
 
 

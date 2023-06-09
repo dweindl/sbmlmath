@@ -127,3 +127,6 @@ def test_cfunction():
     assert isinstance(sym, sp.Function)
     assert sym.definition_url == "http://www.sbml.org/sbml/symbols/delay"
     assert sym.name == "delay"
+    assert sym == delay(sp.Symbol("Q"), sp.Integer(1))
+
+

@@ -2,6 +2,8 @@
 import sympy as sp
 from sympy.core.function import UndefinedFunction
 
+__all__ = ["CFunction", "delay", "rate_of"]
+
 
 class CFunction(UndefinedFunction):
     """
@@ -43,3 +45,8 @@ class CFunction(UndefinedFunction):
         cls._cache[cache_key] = obj
 
         return obj
+
+
+# SBML-defined functions
+delay = CFunction("delay", definition_url="http://www.sbml.org/sbml/symbols/delay")
+rate_of = CFunction("rateOf", definition_url="http://www.sbml.org/sbml/symbols/rateOf")
