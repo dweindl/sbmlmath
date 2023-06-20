@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sbmlmath"
+version = "0.0.1"
 authors = [
     {name = "Daniel Weindl", email = "sci@danielweindl.de"},
 ]
@@ -17,7 +18,6 @@ dependencies = [
     "pint",
     "lxml",
 ]
-dynamic = ["version"]
 
 [project.optional-dependencies]
 test = ["pytest", "pre-commit"]
