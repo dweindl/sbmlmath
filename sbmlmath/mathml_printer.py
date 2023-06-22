@@ -80,7 +80,12 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         )
 
     def _print_Number(self, e):
-        res = self._print_int(e)
+        # only try printing as int if it fits int32
+        if isinstance(e, int) and e < 2**31 and e >= -(2**31):
+            res = self._print_int(e)
+        else:
+            res = super()._print_Number(e)
+
         if self.literals_dimensionless:
             res.setAttribute("sbml:units", "dimensionless")
         return res
@@ -99,6 +104,9 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         return res
 
     def _print_int(self, e):
+        if e >= 2**31 or e < -(2**31):
+            # avoid int32 under/overflow in libsbml and print as float
+            return self._print_Number(e)
         res = super()._print_int(e)
         res.setAttribute("type", "integer")
         if self.literals_dimensionless:

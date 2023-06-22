@@ -129,6 +129,7 @@ def test_cfunction():
     assert sym.name == "delay"
     assert sym == delay(sp.Symbol("Q"), sp.Integer(1))
 
+
 def test_print_cfunction():
     expected = (
         """<?xml version="1.0" encoding="UTF-8"?>\n<math xmlns="http://www.w3.org/1998/Math/MathML" """
@@ -141,4 +142,46 @@ def test_print_cfunction():
     assert printed_mathml == expected
 
 
+def test_integer_overflow():
+    """Check whether libsbml still restricts us to 32bit signed integers"""
 
+    def get_mathml(i):
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+        <math xmlns="http://www.w3.org/1998/Math/MathML" xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">
+        <cn type="integer">{i}</cn>
+        </math>"""
+
+    i = 2**31 - 1
+    assert (ast_node := libsbml.readMathMLFromString(get_mathml(i))) is not None
+    assert str(i) in libsbml.writeMathMLToString(ast_node)
+
+    # FIXME: change to assert not None, if that restriction is ever lifted
+    i = 2**31
+    assert libsbml.readMathMLFromString(get_mathml(i)) is None
+
+    assert (
+        libsbml.readMathMLFromString(
+            SBMLMathMLPrinter().doprint(sp.Integer(2**31 - 1))
+        )
+        is not None
+    )
+    assert (
+        libsbml.readMathMLFromString(
+            SBMLMathMLPrinter().doprint(sp.Integer(-(2**31)))
+        )
+        is not None
+    )
+
+    # would fail as int32, ensure they are printed in a compatible way
+    assert (
+        libsbml.readMathMLFromString(
+            SBMLMathMLPrinter().doprint(sp.Integer(2**31))
+        )
+        is not None
+    )
+    assert (
+        libsbml.readMathMLFromString(
+            SBMLMathMLPrinter().doprint(sp.Integer(-(2**31) - 1))
+        )
+        is not None
+    )
