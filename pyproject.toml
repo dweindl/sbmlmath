@@ -10,7 +10,7 @@ authors = [
 ]
 description = "SBML Math <-> SymPy"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = {text = "BSD-3-Clause"}
 dependencies = [
     "python-libsbml",
@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "pre-commit"]
+test = ["pytest>=7", "pre-commit>=3"]
 
 [tool.black]
 line-length = 80
