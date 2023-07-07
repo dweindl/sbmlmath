@@ -28,9 +28,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('setup.py') }}
         restore-keys: |
-          ${{ runner.os }}-
+          ${{ runner.os }}-${{ matrix.python-version }}-
 
     - name: Cache / restore SBML test suite
       id: cache-sbml-test-suite
