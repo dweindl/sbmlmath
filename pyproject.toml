@@ -16,7 +16,7 @@ dependencies = [
     "python-libsbml",
     "sympy",
     "pint",
-    "lxml",
+    "lxml>=4.6.4",
 ]
 
 [project.optional-dependencies]
