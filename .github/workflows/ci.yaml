@@ -45,7 +45,7 @@ jobs:
 
     - name: Install local packages
       run: |
-        pip install .[test]
+        pip install --upgrade pip setuptools && pip install .[test]
 
     - name: Unit tests
       env:
