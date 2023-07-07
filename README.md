@@ -15,6 +15,8 @@ Main functionality:
 
 **NOTE: This is under development and the API is to be considered unstable**
 
+Python support policy: sbmlmath follows [NEP 29](https://numpy.org/neps/nep-0029-deprecation_policy.html).
+
 ## Usage
 
 ```python
