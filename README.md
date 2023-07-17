@@ -31,3 +31,15 @@ cycled_sympy = SBMLMathMLParser().parse_str(mathml)
 print(cycled_sympy)
 assert sympy_expr == cycled_sympy
 ```
+
+## Installation
+
+Releases from [PyPI](https://pypi.org/project/sbmlmath/):
+```bash
+pip install sbmlmath
+```
+
+The latest development version from GitHub:
+```bash
+pip install https://github.com/dweindl/sbmlmath/archive/main.zip
+```
