@@ -17,6 +17,8 @@ __all__ = ["SBMLMathMLParser"]
 
 
 mathml_ns = "http://www.w3.org/1998/Math/MathML"
+# Create a default unit registry to be used if none is provided to SBMLMathMLParser.__init__.
+#  Depending on the usage pattern, constructing a new UnitRegistry for each SBMLMathMLParser might be rather slow.
 _ureg = UnitRegistry()
 _ureg.Quantity.name = property(fget=lambda s: f"({s})")
 _ureg.Quantity_sympy_ = lambda s: sp.sympify(f"{s.m}*{s.u:~}")
@@ -126,11 +128,17 @@ constants = {
 
 
 class SBMLMathMLParser:
-    """MathML parser for sympy, restricted to the SBML subset of MathML 2.0
+    """MathML parser for sympy
 
-    SBML spec:
+    Parses the SBML subset of MathML 2.0.
+
+    For details, see SBML spec section 3.4:
     https://raw.githubusercontent.com/combine-org/combine-specifications/main/specifications/files/sbml.level-3.version-2.core.release-2.pdf
-    section 3.4
+
+    :param level: SBML level
+    :param version: SBML version
+    :param ureg: :class:`pint.UnitRegistry` to use for unit conversion. Optional.
+    :param floats_as_rationals: Whether to convert floats to :class:`sympy.Rational`. Improves precision.
     """
 
     def __init__(
@@ -140,6 +148,7 @@ class SBMLMathMLParser:
         ureg: UnitRegistry = None,
         floats_as_rationals=True,
     ):
+        """Constructor"""
         self.ureg = ureg or _ureg or UnitRegistry()
         self.sbml_core_ns = (
             f"http://www.sbml.org/sbml/level{level}/version{version}/core"
@@ -152,6 +161,12 @@ class SBMLMathMLParser:
         self.floats_as_rationals = floats_as_rationals
 
     def parse_file(self, file_like) -> sp.Expr:
+        """Parse a file-like object containing MathML.
+
+        :param file_like: File-like object (file, filename, ...) containing MathML.
+            Expected to contain the XML prolog ``<?xml [...]?>`` and the MathML ``math`` element.
+        :return: The sympy representation of the MathML expression.
+        """
         element_tree = etree.parse(file_like)
         for element in element_tree.iter():
             if element.tag == f"{{{mathml_ns}}}math":
@@ -160,6 +175,12 @@ class SBMLMathMLParser:
             return self._parse_element(element)
 
     def parse_str(self, mathml: str):
+        """Parse a string containing MathML.
+
+        :param mathml: MathML string. Expected to contain the XML prolog ``<?xml [...]?>``
+            and the MathML ``math`` element.
+        :return: The sympy representation of the MathML expression.
+        """
         # (fragile) workaround for libsbml<5.20.0 dropping xmlns declarations
         #  for namespaces other than 'sbml'
         if "multi:" in mathml and "xmlns:multi" not in mathml:
@@ -384,7 +405,7 @@ class SBMLMathMLParser:
                 #  should start from an empty UnitRegistry, as sbml could
                 #  redefine any (non-base?)unit to whatever.
                 self.ureg.define(f"{units} = {units}")
-            # TODO pint.Quantitiy causes issues with sympy functions:
+            # TODO pint.Quantity causes issues with sympy functions:
             #  https://docs.sympy.org/latest/explanation/active-deprecations.html#non-expr-args-deprecated
             return self.ureg.Quantity(obj, units)
         return obj
@@ -446,6 +467,7 @@ class SBMLMathMLParser:
 
 
 def _bool2num(x):
+    """Convert sympy Booleans to integers."""
     if isinstance(x, BooleanFalse):
         return sp.Integer(0)
     if isinstance(x, BooleanTrue):
