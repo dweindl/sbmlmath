@@ -139,6 +139,9 @@ class SBMLMathMLParser:
     :param version: SBML version
     :param ureg: :class:`pint.UnitRegistry` to use for unit conversion. Optional.
     :param floats_as_rationals: Whether to convert floats to :class:`sympy.Rational`. Improves precision.
+    :param ignore_units: Whether to ignore units.
+        If True, all units are ignored and all numbers are converted to plain numbers.
+        If False, all math elements with units are converted to :class:`pint.Quantity` objects.
     """
 
     def __init__(
@@ -147,6 +150,7 @@ class SBMLMathMLParser:
         version: Union[int, str] = 2,
         ureg: UnitRegistry = None,
         floats_as_rationals=True,
+        ignore_units=False,
     ):
         """Constructor"""
         self.ureg = ureg or _ureg or UnitRegistry()
@@ -159,6 +163,7 @@ class SBMLMathMLParser:
             f"http://www.sbml.org/sbml/level{level}/version1/multi/version1"
         )
         self.floats_as_rationals = floats_as_rationals
+        self.ignore_units = ignore_units
 
     def parse_file(self, file_like) -> sp.Expr:
         """Parse a file-like object containing MathML.
@@ -395,7 +400,9 @@ class SBMLMathMLParser:
             raise NotImplementedError(f"Unhandled type: {dtype}")
         obj = converter(element)
 
-        if units := element.attrib.get(f"{{{self.sbml_core_ns}}}units", None):
+        if not self.ignore_units and (
+            units := element.attrib.get(f"{{{self.sbml_core_ns}}}units", None)
+        ):
             if units not in self.ureg:
                 # TODO fixme: replace rhs by base units
                 #  this requires access to the underlying SBML model to access
