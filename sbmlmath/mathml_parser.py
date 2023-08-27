@@ -4,14 +4,15 @@ import operator as operators
 from functools import reduce
 from io import BytesIO
 from typing import Union
+
 import sympy as sp
 from lxml import etree
 from pint import UnitRegistry
 from sympy.logic.boolalg import Boolean, BooleanFalse, BooleanTrue
 
-from .species_symbol import SpeciesSymbol
-from .csymbol import CSymbol
 from .cfunction import CFunction
+from .csymbol import CSymbol
+from .species_symbol import SpeciesSymbol
 
 __all__ = ["SBMLMathMLParser"]
 

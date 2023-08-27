@@ -3,12 +3,11 @@ from typing import Union
 import libsbml
 import sympy as sp
 
+from .cfunction import *
+from .csymbol import *
 from .mathml_parser import SBMLMathMLParser
 from .mathml_printer import SBMLMathMLPrinter
 from .species_symbol import SpeciesSymbol
-from .csymbol import *
-from .cfunction import *
-
 
 __all__ = [
     "SBMLMathMLParser",

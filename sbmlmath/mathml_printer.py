@@ -4,9 +4,8 @@ from numbers import Number
 import sympy as sp
 from sympy.printing.mathml import MathMLContentPrinter
 
-from .species_symbol import SpeciesSymbol
 from .csymbol import CSymbol
-
+from .species_symbol import SpeciesSymbol
 
 __all__ = ["SBMLMathMLPrinter"]
 

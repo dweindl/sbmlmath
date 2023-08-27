@@ -1,4 +1,4 @@
-from sbmlmath import SpeciesSymbol, SBMLMathMLPrinter
+from sbmlmath import SBMLMathMLPrinter, SpeciesSymbol
 
 
 def test_species_symbol_repr_type():

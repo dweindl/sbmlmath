@@ -48,5 +48,9 @@ class CFunction(UndefinedFunction):
 
 
 # SBML-defined functions
-delay = CFunction("delay", definition_url="http://www.sbml.org/sbml/symbols/delay")
-rate_of = CFunction("rateOf", definition_url="http://www.sbml.org/sbml/symbols/rateOf")
+delay = CFunction(
+    "delay", definition_url="http://www.sbml.org/sbml/symbols/delay"
+)
+rate_of = CFunction(
+    "rateOf", definition_url="http://www.sbml.org/sbml/symbols/rateOf"
+)
