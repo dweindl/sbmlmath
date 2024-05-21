@@ -60,6 +60,7 @@ mathml_op_sympy = {
     f"{{{mathml_ns}}}times": lambda *args: reduce(
         operators.mul, args, sp.Integer(1)
     ),
+    f"{{{mathml_ns}}}divide": operators.truediv,
     f"{{{mathml_ns}}}power": lambda base, exponent: base**exponent,
     f"{{{mathml_ns}}}eq": lambda *args: sp.Equality(*args, evaluate=False),
     f"{{{mathml_ns}}}neq": lambda *args: sp.Unequality(*args, evaluate=False),
@@ -284,10 +285,6 @@ class SBMLMathMLParser:
 
         with contextlib.suppress(KeyError):
             return mathml_op_sympy[operator.tag](*sym_operands)
-
-        if operator.tag == f"{{{mathml_ns}}}divide":
-            assert len(sym_operands) == 2
-            return sym_operands[0] / sym_operands[1]
 
         if operator.tag == f"{{{mathml_ns}}}plus":
             # note: unary version is handled above
