@@ -18,15 +18,23 @@ class SpeciesSymbol(sp.Dummy):
     Subclassed from :class:`sympy.Dummy` to avoid caching issues, due to using
     the same name but with different attributes / meanings.
 
-
     Arguments
     ---------
-
     representation_type:
-        SBML-multi spec 3.26.2
+        What the species symbol represents (see also SBML-multi spec 3.26.2).
     species_reference:
-        SBML-multi spec 3.26.1. ID of a species reference in the
-        same reaction.
+        ID of a species reference in the same reaction
+        (see also SBML-multi spec 3.26.1).
+
+
+    >>> SpeciesSymbol("S") + SpeciesSymbol("S", representation_type="sum")
+    _S + _S
+
+    >>> SpeciesSymbol("S") == SpeciesSymbol("S", representation_type="sum")
+    False
+
+    >>> SpeciesSymbol("ref_to_S", species_reference="S")
+    <ref_to_S(species_reference=S)>
     """
 
     _cache = {}
@@ -56,14 +64,15 @@ class SpeciesSymbol(sp.Dummy):
 
     def __repr__(self):
         rt = (
-            f"representation_type={self.representation_type},"
+            f"representation_type={self.representation_type}"
             if self.representation_type
             else ""
         )
         sr = (
-            f"species_reference={self.species_reference},"
+            f"species_reference={self.species_reference}"
             if self.species_reference
             else ""
         )
+        rt = f"{rt}, " if rt and sr else rt
 
         return f"<{self.name}({rt}{sr})>"

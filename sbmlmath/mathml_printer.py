@@ -67,6 +67,12 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         :param expr: The SymPy expression to be converted.
         :param with_prolog: Whether to include the XML prolog.
         :param with_math: Whether to include the <math> tags.
+
+        >>> SBMLMathMLPrinter().doprint(sp.sympify("3 * a"))
+        '<?xml version="1.0" encoding="UTF-8"?>\\n<math xmlns="http://www.w3.org/1998/Math/MathML" xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">\\n<apply><times/><cn type="integer" sbml:units="dimensionless">3</cn><ci>a</ci></apply></math>'
+
+        >>> SBMLMathMLPrinter().doprint(sp.sympify("cbrt(3)"), with_math=False, with_prolog=False)
+        '<apply><root/><degree><cn>3</cn></degree><cn type="integer" sbml:units="dimensionless">3</cn></apply>'
         """
         if isinstance(expr, float):
             expr = sp.Float(expr)
