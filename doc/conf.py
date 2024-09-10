@@ -59,6 +59,7 @@ autodoc_default_options = {
 
 intersphinx_mapping = {
     "sympy": ("https://docs.sympy.org/latest/", None),
+    "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3", None),
     "libsbml": get_libsbml_inventory(),
 }
