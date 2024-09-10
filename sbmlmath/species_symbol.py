@@ -18,8 +18,14 @@ class SpeciesSymbol(sp.Dummy):
     Subclassed from sympy.Dummy to avoid caching issues, due to using the same
     name but with different meanings.
 
-    representation_type: SBML-multi spec 3.26.2
-    species_reference: SBML-multi spec 3.26.1. ID of a species reference in the
+
+    Arguments
+    ---------
+
+    representation_type:
+        SBML-multi spec 3.26.2
+    species_reference:
+        SBML-multi spec 3.26.1. ID of a species reference in the
         same reaction.
     """
 
