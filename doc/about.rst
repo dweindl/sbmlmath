@@ -55,3 +55,9 @@ The latest development version from GitHub:
 .. code-block:: bash
 
     pip install https://github.com/dweindl/sbmlmath/archive/main.zip
+
+
+Source code
+-----------
+
+The source code is hosted on `GitHub <https://github.com/dweindl/sbmlmath>`_.
