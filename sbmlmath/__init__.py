@@ -22,7 +22,21 @@ __all__ = [
 
 
 def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
-    """Convert sympy expression to SBML math ASTNode"""
+    """Convert sympy expression to SBML math ASTNode.
+
+    This function takes a SymPy expression and converts it to an SBML math
+    ASTNode.
+
+    Args:
+        sp_expr: The SymPy expression to be converted.
+
+    Returns:
+        The resulting SBML math ASTNode.
+
+    Raises:
+        ValueError:
+            If there is an error in converting the math expression.
+    """
     mathml = SBMLMathMLPrinter().doprint(sp_expr)
 
     if ast_node := libsbml.readMathMLFromString(mathml):
