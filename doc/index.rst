@@ -1,6 +1,3 @@
-sbmlmath
-========
-
 .. include:: about.rst
 
 

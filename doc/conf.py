@@ -31,6 +31,11 @@ autodoc_default_options = {
     "show-inheritance": None,
 }
 
+intersphinx_mapping = {
+    "sympy": ("https://docs.sympy.org/latest/", None),
+    "python": ("https://docs.python.org/3", None),
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
