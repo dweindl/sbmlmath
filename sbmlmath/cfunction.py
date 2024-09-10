@@ -1,4 +1,4 @@
-"""Handling of <csymbol> functions"""
+"""Handling of ``<csymbol>`` functions"""
 import sympy as sp
 from sympy.core.function import UndefinedFunction
 
@@ -7,10 +7,11 @@ __all__ = ["CFunction", "delay", "rate_of"]
 
 class CFunction(UndefinedFunction):
     """
-    Represents <csymbol> functions
+    Represents ``<csymbol>`` functions.
 
-    examples: rateOf, delay, distributions from distrib package
-    https://synonym.caltech.edu/documents/specifications/level-3/version-1/distrib/
+    Examples: :func:`rateOf() <rate_of>`, :func:`delay`,
+    distributions from the `distrib package
+    <https://synonym.caltech.edu/documents/specifications/level-3/version-1/distrib/>`_.
 
 
     See also https://www.w3.org/TR/MathML2/chapter4.html#contm.deffun
@@ -48,9 +49,13 @@ class CFunction(UndefinedFunction):
 
 
 # SBML-defined functions
+
+#: The SBML ``delay()`` function.
 delay = CFunction(
     "delay", definition_url="http://www.sbml.org/sbml/symbols/delay"
 )
+
+#: The SBML ``rateOf()`` function.
 rate_of = CFunction(
     "rateOf", definition_url="http://www.sbml.org/sbml/symbols/rateOf"
 )

@@ -50,7 +50,17 @@ def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
 def sbml_math_to_sympy(
     sbml_obj: Union[libsbml.SBase, libsbml.ASTNode]
 ) -> sp.Expr:
-    """Convert SBML MathML to sympy using the custom MathML parser"""
+    """Convert SBML MathML to sympy expression.
+
+    Conversion is done using the default settings of :class:`SBMLMathMLParser`.
+
+    Args:
+        sbml_obj:
+            The SBML object to be converted.
+            (Either directly the ASTNode or the surrounding SBase object).
+    Returns:
+        The resulting sympy expression.
+    """
     ast_node = (
         sbml_obj
         if isinstance(sbml_obj, libsbml.ASTNode)

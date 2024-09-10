@@ -8,10 +8,13 @@ __all__ = ["CSymbol", "TimeSymbol"]
 
 class CSymbol(sp.Dummy):
     """
-    Represents a <csymbol> element.
+    Represents a ``<csymbol>`` element.
 
     Represents e.g.:
-    ``<csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/avogadro"> avogadro </csymbol>``
+
+    .. code-block:: xml
+
+        <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/avogadro"> avogadro </csymbol>
 
     See also https://www.w3.org/TR/MathML2/chapter4.html#contm.csymbol
     """
@@ -62,9 +65,12 @@ class CSymbol(sp.Dummy):
 
 
 class TimeSymbol(CSymbol):
-    """Time symbol.
+    """The current internal simulation time.
 
-    Symbol representing the current simulation time.
+    This symbol represents the current simulation time inside the model.
+
+    Args:
+        name: The name of the symbol.
     """
 
     def __new__(

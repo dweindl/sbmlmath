@@ -11,7 +11,12 @@ __all__ = ["SBMLMathMLPrinter"]
 
 
 class SBMLMathMLPrinter(MathMLContentPrinter):
-    """MathML printer
+    """MathML code printer.
+
+    This printer converts SymPy expressions to MathML code that can be used in
+    SBML models.
+
+    Note:
 
     * assumes all constants are dimensionless
     """
@@ -56,7 +61,13 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             ci.setAttribute("multi:speciesReference", sym.species_reference)
         return ci
 
-    def doprint(self, expr, with_prolog=True, with_math=True):
+    def doprint(self, expr, with_prolog=True, with_math=True) -> str:
+        """Convert SymPy expression to MathML string.
+
+        :param expr: The SymPy expression to be converted.
+        :param with_prolog: Whether to include the XML prolog.
+        :param with_math: Whether to include the <math> tags.
+        """
         if isinstance(expr, float):
             expr = sp.Float(expr)
         try:

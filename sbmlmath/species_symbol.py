@@ -8,15 +8,15 @@ __all__ = ["SpeciesSymbol"]
 
 class SpeciesSymbol(sp.Dummy):
     """
-    Represents a <ci> element containing a species.
+    Represents a ``<ci>`` element containing a species.
 
     Represents e.g.:
     ``<ci multi:representationType="sum"> bla </ci>``
     ``<ci multi:speciesReference="refS"> S </ci>``
     (see SBML multi specs 3.26)
 
-    Subclassed from sympy.Dummy to avoid caching issues, due to using the same
-    name but with different meanings.
+    Subclassed from :class:`sympy.Dummy` to avoid caching issues, due to using
+    the same name but with different attributes / meanings.
 
 
     Arguments
