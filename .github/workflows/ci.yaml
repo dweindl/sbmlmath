@@ -4,10 +4,10 @@ on:
   push:
   workflow_dispatch:
   schedule:
-    - cron:  '48 4 * * *'
+    - cron: '48 4 * * *'
 
 jobs:
-  build:
+  test-ubuntu:
     runs-on: ubuntu-latest
 
     strategy:
@@ -17,7 +17,6 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
-
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -49,5 +48,93 @@ jobs:
 
     - name: Unit tests
       env:
-          SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
+        SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
+      run: pytest -vv
+
+  test-macos:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python-version }}-
+
+    - name: Cache / restore SBML test suite
+      id: cache-sbml-test-suite
+      uses: actions/cache@v4
+      with:
+        path: sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite
+
+    - name: Download SBML test suite
+      if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
+      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+
+    - name: Install local packages
+      run: |
+        pip install --upgrade pip setuptools && pip install .[test]
+
+    - name: Unit tests
+      env:
+        SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
+      run: pytest -vv
+
+  test-windows:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python-version }}-
+
+    - name: Cache / restore SBML test suite
+      id: cache-sbml-test-suite
+      uses: actions/cache@v4
+      with:
+        path: sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite
+
+    - name: Download SBML test suite
+      if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
+      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+
+    - name: Install local packages
+      run: |
+        pip install --upgrade pip setuptools && pip install .[test]
+
+    - name: Unit tests
+      env:
+        SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
       run: pytest -vv
