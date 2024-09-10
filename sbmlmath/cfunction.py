@@ -14,7 +14,7 @@ class CFunction(UndefinedFunction):
     <https://synonym.caltech.edu/documents/specifications/level-3/version-1/distrib/>`_.
 
 
-    See also https://www.w3.org/TR/MathML2/chapter4.html#contm.deffun
+    See also https://www.w3.org/TR/MathML2/chapter4.html#contm.deffun.
     """
 
     _cache = {}

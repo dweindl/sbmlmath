@@ -130,20 +130,26 @@ constants = {
 
 
 class SBMLMathMLParser:
-    """MathML parser for sympy
+    """MathML parser for sympy.
 
     Parses the SBML subset of MathML 2.0.
 
     For details, see SBML spec section 3.4:
-    https://raw.githubusercontent.com/combine-org/combine-specifications/main/specifications/files/sbml.level-3.version-2.core.release-2.pdf
+    https://raw.githubusercontent.com/combine-org/combine-specifications/main/specifications/files/sbml.level-3.version-2.core.release-2.pdf.
 
     :param level: SBML level
     :param version: SBML version
-    :param ureg: :class:`pint.UnitRegistry` to use for unit conversion. Optional.
-    :param floats_as_rationals: Whether to convert floats to :class:`sympy.Rational`. Improves precision.
-    :param ignore_units: Whether to ignore units.
-        If True, all units are ignored and all numbers are converted to plain numbers.
-        If False, all math elements with units are converted to :class:`pint.Quantity` objects.
+    :param ureg:
+        Optional :class:`pint.UnitRegistry` to use for unit conversion.
+    :param floats_as_rationals:
+        Whether to convert floats to :class:`sympy.Rational`.
+        Improves precision.
+    :param ignore_units:
+        Whether to ignore units.
+        If ``True``, all units are ignored and all numbers are converted to
+        plain numbers.
+        If ``False``, all math elements with units are converted to
+        :class:`pint.Quantity` objects.
     """
 
     def __init__(
@@ -170,8 +176,10 @@ class SBMLMathMLParser:
     def parse_file(self, file_like) -> sp.Expr:
         """Parse a file-like object containing MathML.
 
-        :param file_like: File-like object (file, filename, ...) containing MathML.
-            Expected to contain the XML prolog ``<?xml [...]?>`` and the MathML ``math`` element.
+        :param file_like:
+            File-like object (file, filename, ...) containing MathML.
+            Expected to contain the XML prolog ``<?xml [...]?>``
+            and the MathML ``math`` element.
         :return: The sympy representation of the MathML expression.
         """
         element_tree = etree.parse(file_like)
@@ -184,7 +192,8 @@ class SBMLMathMLParser:
     def parse_str(self, mathml: str):
         """Parse a string containing MathML.
 
-        :param mathml: MathML string. Expected to contain the XML prolog ``<?xml [...]?>``
+        :param mathml:
+            MathML string. Expected to contain the XML prolog ``<?xml [...]?>``
             and the MathML ``math`` element.
         :return: The sympy representation of the MathML expression.
         """
@@ -287,7 +296,7 @@ class SBMLMathMLParser:
             return mathml_op_sympy[operator.tag](*sym_operands)
 
         if operator.tag == f"{{{mathml_ns}}}plus":
-            # note: unary version is handled above
+            # note: the unary version is handled above
             # return sp.Add(*sym_operands)
             return reduce(operators.add, sym_operands, sp.Integer(0))
 

@@ -22,7 +22,7 @@ class CSymbol(sp.Dummy):
     <avogadro(http://www.sbml.org/sbml/symbols/avogadro)>
 
 
-    See also https://www.w3.org/TR/MathML2/chapter4.html#contm.csymbol
+    See also https://www.w3.org/TR/MathML2/chapter4.html#contm.csymbol.
     """
 
     _cache = {}

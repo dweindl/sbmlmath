@@ -10,10 +10,10 @@ class SpeciesSymbol(sp.Dummy):
     """
     Represents a ``<ci>`` element containing a species.
 
-    Represents e.g.:
-    ``<ci multi:representationType="sum"> bla </ci>``
+    Represents, for example,
+    ``<ci multi:representationType="sum"> bla </ci>`` or
     ``<ci multi:speciesReference="refS"> S </ci>``
-    (see SBML multi specs 3.26)
+    (see SBML multi specs 3.26).
 
     Subclassed from :class:`sympy.Dummy` to avoid caching issues, due to using
     the same name but with different attributes / meanings.

@@ -1,1 +1,2 @@
 sphinx>=8
+sphinx-autodoc-typehints>=2.4

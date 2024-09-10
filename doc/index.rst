@@ -2,8 +2,8 @@
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    About <about>
-   API   <api>
+   API reference   <api>

@@ -20,8 +20,8 @@ def get_libsbml_inventory(
         "# The remainder of this file is compressed using zlib.\n"
     )
     inventory_content = (
-        "libsbml.ASTNode py:class -1 classlibsbml_1_1_a_s_t_node.html ASTNode\n"
-        "libsbml.SBase py:class -1 classlibsbml_1_1_s_base.html SBase\n"
+        "libsbml.ASTNode py:class -1 classlibsbml_1_1_a_s_t_node.html libsbml.ASTNode\n"
+        "libsbml.SBase py:class -1 classlibsbml_1_1_s_base.html libsbml.SBase\n"
     )
     compressed_content = zlib.compress(inventory_content.encode("utf-8"))
 
@@ -45,10 +45,12 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
 ]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
 
 autodoc_default_options = {
     "members": None,
@@ -57,6 +59,13 @@ autodoc_default_options = {
     "show-inheritance": None,
 }
 
+# sphinx-autodoc-typehints options
+# https://github.com/tox-dev/sphinx-autodoc-typehints
+always_use_bars_union = True
+typehints_fully_qualified = False
+
+# autodoc_class_signature = "separated"
+
 intersphinx_mapping = {
     "sympy": ("https://docs.sympy.org/latest/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
@@ -64,6 +73,8 @@ intersphinx_mapping = {
     "libsbml": get_libsbml_inventory(),
 }
 
+typehints_document_rtype = True
+autodoc_typehints = "description"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
