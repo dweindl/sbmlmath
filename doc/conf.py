@@ -5,6 +5,32 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import zlib
+
+
+def get_libsbml_inventory(
+    filename: str = "libsbml.inv",
+    base_url: str = "https://sbml.org/software/libsbml/5.18.0/docs/formatted/python-api/",
+) -> tuple[str, str]:
+    """Create the libsbml inventory file for use with intersphinx."""
+    inventory_header = (
+        "# Sphinx inventory version 2\n"
+        "# Project: libsbml\n"
+        "# Version: 5.18.0\n"
+        "# The remainder of this file is compressed using zlib.\n"
+    )
+    inventory_content = (
+        "libsbml.ASTNode py:class -1 classlibsbml_1_1_a_s_t_node.html ASTNode\n"
+        "libsbml.SBase py:class -1 classlibsbml_1_1_s_base.html SBase\n"
+    )
+    compressed_content = zlib.compress(inventory_content.encode("utf-8"))
+
+    with open(filename, "wb") as f:
+        f.write(inventory_header.encode("utf-8"))
+        f.write(compressed_content)
+
+    return (base_url, filename)
+
 
 project = "sbmlmath"
 copyright = "2024, Daniel Weindl"
@@ -34,6 +60,7 @@ autodoc_default_options = {
 intersphinx_mapping = {
     "sympy": ("https://docs.sympy.org/latest/", None),
     "python": ("https://docs.python.org/3", None),
+    "libsbml": get_libsbml_inventory(),
 }
 
 
