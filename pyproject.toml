@@ -19,6 +19,13 @@ dependencies = [
     "lxml>=4.6.4",
 ]
 
+[project.urls]
+Homepage = "https://github.com/dweindl/sbmlmath"
+Documentation = "https://sbmlmath.readthedocs.io/"
+Repository = "https://github.com/dweindl/sbmlmath.git"
+"Bug Tracker" = "https://github.com/dweindl/sbmlmath/issues"
+PyPI = "https://pypi.org/project/sbmlmath/"
+
 [project.optional-dependencies]
 test = ["pytest>=7", "pre-commit>=3"]
 
