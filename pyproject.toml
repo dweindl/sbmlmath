@@ -24,3 +24,6 @@ test = ["pytest>=7", "pre-commit>=3"]
 
 [tool.black]
 line-length = 80
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
