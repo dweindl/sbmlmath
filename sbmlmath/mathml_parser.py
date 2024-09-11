@@ -152,6 +152,9 @@ class SBMLMathMLParser:
         plain numbers.
         If ``False``, all math elements with units are converted to
         :class:`pint.Quantity` objects.
+    :param symbol_kwargs:
+        Additional keyword arguments for constructing :class:`sympy.Symbol`.
+        For example, for passing custom assumptions such as ``real=True``.
     """
 
     def __init__(
@@ -161,6 +164,7 @@ class SBMLMathMLParser:
         ureg: UnitRegistry = None,
         floats_as_rationals=True,
         ignore_units=False,
+        symbol_kwargs=None,
     ):
         """Constructor"""
         self.ureg = ureg or _ureg or UnitRegistry()
@@ -174,6 +178,9 @@ class SBMLMathMLParser:
         )
         self.floats_as_rationals = floats_as_rationals
         self.ignore_units = ignore_units
+        self.symbol_kwargs = (
+            {} if symbol_kwargs is None else symbol_kwargs.copy()
+        )
 
     def parse_file(self, file_like) -> sp.Expr:
         """Parse a file-like object containing MathML.
@@ -382,8 +389,9 @@ class SBMLMathMLParser:
                 name=symbol_name,
                 representation_type=representation_type,
                 species_reference=species_reference,
+                **self.symbol_kwargs,
             )
-        return sp.Symbol(symbol_name)
+        return sp.Symbol(symbol_name, **self.symbol_kwargs)
 
     def handle_cn(self, element: etree._Element) -> sp.Expr:
         """Handle numbers.
@@ -489,6 +497,7 @@ class SBMLMathMLParser:
             self.preprocess_symbol_name(element.text.strip(), element),
             encoding=element.attrib["encoding"],
             definition_url=element.attrib["definitionURL"],
+            **self.symbol_kwargs,
         )
 
     def preprocess_symbol_name(
