@@ -5,6 +5,10 @@ import sympy as sp
 
 __all__ = ["CSymbol", "TimeSymbol"]
 
+#: The `Avogadro constant <https://en.wikipedia.org/wiki/Avogadro_constant>`_
+# as defined in SBML L3V2 section 3.4.6.
+SBML_L3V2_AVOGADRO_VALUE = 6.02214179e23
+
 
 class CSymbol(sp.Dummy):
     """
@@ -20,7 +24,8 @@ class CSymbol(sp.Dummy):
 
     >>> CSymbol("avogadro", definition_url="http://www.sbml.org/sbml/symbols/avogadro")
     <avogadro(http://www.sbml.org/sbml/symbols/avogadro)>
-
+    >>> float(CSymbol("avogadro", definition_url="http://www.sbml.org/sbml/symbols/avogadro"))
+    6.02214179e+23
 
     See also https://www.w3.org/TR/MathML2/chapter4.html#contm.csymbol.
     """
@@ -68,6 +73,11 @@ class CSymbol(sp.Dummy):
         # if we define __eq__, we also need __hash__ to use instances in sympy
         #  expressions
         return hash(self.definition_url)
+
+    def __float__(self):
+        if self.definition_url == "http://www.sbml.org/sbml/symbols/avogadro":
+            return SBML_L3V2_AVOGADRO_VALUE
+        return super().__float__()
 
 
 class TimeSymbol(CSymbol):
