@@ -28,3 +28,15 @@ def test_mathmlparser_vs_sympify(formula_str):
     sym_expr = parser.parse_str(mathml)
     print(sym_expr)
     assert sym_expr == sp.sympify(formula_str)
+
+
+def test_parser_with_name_preprocessor():
+    ast_node = libsbml.parseL3Formula("a * b")
+    mathml = libsbml.writeMathMLToString(ast_node)
+
+    parser = SBMLMathMLParser()
+    parser.preprocess_symbol_name = lambda name, element: f"_{name}"
+
+    sym_expr = parser.parse_str(mathml)
+    print(sym_expr)
+    assert sym_expr == sp.sympify(sp.sympify("_a * _b"))
