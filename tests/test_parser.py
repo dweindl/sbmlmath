@@ -40,3 +40,18 @@ def test_parser_with_name_preprocessor():
     sym_expr = parser.parse_str(mathml)
     print(sym_expr)
     assert sym_expr == sp.sympify(sp.sympify("_a * _b"))
+
+
+def test_parser_with_custom_assumptions():
+    ast_node = libsbml.parseL3Formula("a * b")
+    mathml = libsbml.writeMathMLToString(ast_node)
+
+    parser = SBMLMathMLParser()
+    sym_expr = parser.parse_str(mathml)
+    for symbol in sym_expr.free_symbols:
+        assert symbol.is_real is None
+
+    parser.symbol_kwargs = {"real": True}
+    sym_expr = parser.parse_str(mathml)
+    for symbol in sym_expr.free_symbols:
+        assert symbol.is_real is True
