@@ -363,7 +363,7 @@ class SBMLMathMLParser:
         """Handle identifiers.
 
         See also:
-        `numerical constants in MathML <https://www.w3.org/TR/MathML2/chapter4.html#contm.ci>`_.
+        `numerical constants in MathML <https://www.w3.org/TR/MathML2/chapter4.html#contm.ci>`__.
         """
         handled_attrs = {
             # TODO: remove after fixing xmlns in model
