@@ -137,6 +137,8 @@ class SBMLMathMLParser:
     For details, see SBML spec section 3.4:
     https://raw.githubusercontent.com/combine-org/combine-specifications/main/specifications/files/sbml.level-3.version-2.core.release-2.pdf.
 
+    See also: `MathML 2.0 specification <https://www.w3.org/TR/MathML2/>`_.
+
     :param level: SBML level
     :param version: SBML version
     :param ureg:
@@ -334,22 +336,28 @@ class SBMLMathMLParser:
             a, b = sym_operands
             return (a - a % b) / b
 
+        name = self.preprocess_symbol_name(operator.text.strip(), operator)
+
         if operator.tag == f"{{{mathml_ns}}}csymbol":
             # examples: rateOf, delay, distributions from distrib package
             assert operator.attrib["encoding"] == "text"
             return CFunction(
-                operator.text.strip(),
+                name,
                 definition_url=operator.attrib["definitionURL"],
             )(*sym_operands)
 
         if operator.tag == f"{{{mathml_ns}}}ci":
             assert not operator.attrib
-            return sp.Function(operator.text.strip(), real=True)(*sym_operands)
+            return sp.Function(name, real=True)(*sym_operands)
 
         raise NotImplementedError(f"Unsupported operator {operator.tag}.")
 
     def handle_ci(self, element: etree._Element) -> sp.Expr:
-        """Handle identifiers."""
+        """Handle identifiers.
+
+        See also:
+        `numerical constants in MathML <https://www.w3.org/TR/MathML2/chapter4.html#contm.ci>`_.
+        """
         handled_attrs = {
             # TODO: remove after fixing xmlns in model
             "multi:representationType",
@@ -368,7 +376,7 @@ class SBMLMathMLParser:
         species_reference = element.attrib.get(
             f"{{{self.sbml_multi_ns}}}speciesReference", None
         ) or element.attrib.get("multi:speciesReference", None)
-        symbol_name = element.text.strip()
+        symbol_name = self.preprocess_symbol_name(element.text.strip(), element)
         if representation_type or species_reference:
             return SpeciesSymbol(
                 name=symbol_name,
@@ -378,7 +386,11 @@ class SBMLMathMLParser:
         return sp.Symbol(symbol_name)
 
     def handle_cn(self, element: etree._Element) -> sp.Expr:
-        """Handle numbers."""
+        """Handle numbers.
+
+        See also:
+        `numerical constants in MathML <https://www.w3.org/TR/MathML2/chapter4.html#contm.cn>`_.
+        """
         handled_attrs = {
             "type",
             f"{{{self.sbml_core_ns}}}units",
@@ -474,10 +486,26 @@ class SBMLMathMLParser:
     def handle_csymbol(self, element: etree._Element) -> sp.Expr:
         assert element.attrib["encoding"] == "text"
         return CSymbol(
-            element.text.strip(),
+            self.preprocess_symbol_name(element.text.strip(), element),
             encoding=element.attrib["encoding"],
             definition_url=element.attrib["definitionURL"],
         )
+
+    def preprocess_symbol_name(
+        self, name: str, element: etree._Element = None
+    ) -> str:
+        """Preprocess symbol names.
+
+        Override this method to preprocess symbol names before parsing.
+        For example, to handle reserved names.
+
+        Does nothing by default.
+
+        :param name: Symbol name in the MathML element.
+        :param element: MathML element.
+        :return: Preprocessed symbol name.
+        """
+        return name
 
 
 def _bool2num(x):
