@@ -1,4 +1,6 @@
 """Handling of <csymbol> constants"""
+from __future__ import annotations
+
 from typing import Literal, Optional
 
 import sympy as sp
@@ -30,7 +32,9 @@ class CSymbol(sp.Dummy):
     See also https://www.w3.org/TR/MathML2/chapter4.html#contm.csymbol.
     """
 
+    DEFINITION_URL = None
     _cache = {}
+    _definition_url_to_derived_class = {}
 
     def __new__(
         cls,
@@ -47,7 +51,12 @@ class CSymbol(sp.Dummy):
         if cached := cls._cache.get(cache_key):
             return cached
 
-        obj = super().__new__(cls, *args, **kwargs)
+        # return the matching subtype, depending on the definition URL
+        obj = super().__new__(
+            cls._definition_url_to_derived_class.get(definition_url, cls),
+            *args,
+            **kwargs,
+        )
 
         # ensure there are no collisions with super() attributes
         assert not hasattr(obj, "definition_url")
@@ -79,6 +88,12 @@ class CSymbol(sp.Dummy):
             return SBML_L3V2_AVOGADRO_VALUE
         return super().__float__()
 
+    @classmethod
+    def register_subclass(cls, derived_class: type[CSymbol]):
+        cls._definition_url_to_derived_class[
+            derived_class.DEFINITION_URL
+        ] = derived_class
+
 
 class TimeSymbol(CSymbol):
     """The current internal simulation time.
@@ -92,6 +107,8 @@ class TimeSymbol(CSymbol):
         name: The name of the symbol.
     """
 
+    DEFINITION_URL = "http://www.sbml.org/sbml/symbols/time"
+
     def __new__(
         cls,
         name: str,
@@ -99,5 +116,8 @@ class TimeSymbol(CSymbol):
         return super().__new__(
             cls,
             name=name,
-            definition_url="http://www.sbml.org/sbml/symbols/time",
+            definition_url=cls.DEFINITION_URL,
         )
+
+
+CSymbol.register_subclass(TimeSymbol)
