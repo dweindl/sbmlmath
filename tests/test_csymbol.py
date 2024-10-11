@@ -1,4 +1,5 @@
 import sympy as sp
+from sympy.core.function import UndefinedFunction
 
 from sbmlmath.cfunction import *
 from sbmlmath.cfunction import DEF_URL_DELAY, DEF_URL_RATE_OF
@@ -53,3 +54,6 @@ def test_cfunction():
     assert rate_of(a) == rate_of(a)
     assert rate_of(a) != rate_of(b)
     assert (rate_of(a) * 4).has(RateOf) is False
+
+    assert UndefinedFunction(rate_of.name) != rate_of
+    assert UndefinedFunction(rate_of.name)(a).has(rate_of) is False
