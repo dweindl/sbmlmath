@@ -1,4 +1,5 @@
 """SBML mathml to sympy."""
+
 import contextlib
 import operator as operators
 from functools import reduce
@@ -191,7 +192,9 @@ class SBMLMathMLParser:
             and the MathML ``math`` element.
         :return: The sympy representation of the MathML expression.
         """
-        element_tree = etree.parse(file_like)
+        # Using `lxml` to parse untrusted data is known to be vulnerable to XML
+        #  attacks
+        element_tree = etree.parse(file_like)  # noqa S320
         for element in element_tree.iter():
             if element.tag == f"{{{mathml_ns}}}math":
                 continue
@@ -240,7 +243,7 @@ class SBMLMathMLParser:
 
         raise NotImplementedError(f"Unhandled element: {element.tag}.")
 
-    def handle_apply(self, element: etree._Element) -> sp.Expr:
+    def handle_apply(self, element: etree._Element) -> sp.Expr:  # noqa C901
         """Handle <apply>"""
         operator, *operands = element
         sym_operands = list(map(self._parse_element, operands))
@@ -289,7 +292,8 @@ class SBMLMathMLParser:
                 expr = True
                 for i in range(len(sym_operands) - 1):
                     expr = sp.And(
-                        expr, sym_operator(sym_operands[i], sym_operands[i + 1])
+                        expr,
+                        sym_operator(sym_operands[i], sym_operands[i + 1]),
                     )
                 return expr
 
@@ -383,7 +387,9 @@ class SBMLMathMLParser:
         species_reference = element.attrib.get(
             f"{{{self.sbml_multi_ns}}}speciesReference", None
         ) or element.attrib.get("multi:speciesReference", None)
-        symbol_name = self.preprocess_symbol_name(element.text.strip(), element)
+        symbol_name = self.preprocess_symbol_name(
+            element.text.strip(), element
+        )
         if representation_type or species_reference:
             return SpeciesSymbol(
                 name=symbol_name,

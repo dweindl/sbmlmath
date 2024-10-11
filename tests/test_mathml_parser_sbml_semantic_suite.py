@@ -2,6 +2,7 @@
 
 (test suite at https://github.com/sbmlteam/sbml-test-suite/)
 """
+
 import os
 from pathlib import Path
 
@@ -20,7 +21,9 @@ assert len(cases)
 
 
 @pytest.mark.parametrize(
-    ("sbml_file",), [[file] for file in cases], ids=map(lambda x: x.stem, cases)
+    ("sbml_file",),
+    [[file] for file in cases],
+    ids=map(lambda x: x.stem, cases),  # noqa: C417
 )
 def test_sbml(sbml_file):
     print()

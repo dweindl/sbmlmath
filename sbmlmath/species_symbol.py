@@ -1,4 +1,5 @@
 """SBML MathML related functionality"""
+
 from typing import Literal, Optional
 
 import sympy as sp

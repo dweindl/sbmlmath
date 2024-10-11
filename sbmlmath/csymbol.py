@@ -1,7 +1,6 @@
 """Handling of <csymbol> constants"""
-from __future__ import annotations
 
-from typing import Literal, Optional
+from __future__ import annotations
 
 import sympy as sp
 
@@ -90,9 +89,9 @@ class CSymbol(sp.Dummy):
 
     @classmethod
     def register_subclass(cls, derived_class: type[CSymbol]):
-        cls._definition_url_to_derived_class[
-            derived_class.DEFINITION_URL
-        ] = derived_class
+        cls._definition_url_to_derived_class[derived_class.DEFINITION_URL] = (
+            derived_class
+        )
 
 
 class TimeSymbol(CSymbol):

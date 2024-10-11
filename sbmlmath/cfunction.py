@@ -1,5 +1,5 @@
 """Handling of ``<csymbol>`` functions"""
-import sympy as sp
+
 from sympy.core.function import UndefinedFunction
 
 __all__ = ["CFunction", "delay", "rate_of"]

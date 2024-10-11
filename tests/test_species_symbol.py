@@ -75,7 +75,9 @@ def test_species_symbol_operations():
         '<cn sbml:units="dimensionless">2</cn></apply></apply>'
         "</math>"
     )
-    sym_expr = SBMLMathMLParser(floats_as_rationals=False).parse_str(mathml_exp)
+    sym_expr = SBMLMathMLParser(floats_as_rationals=False).parse_str(
+        mathml_exp
+    )
     mathml_act = SBMLMathMLPrinter().doprint(sym_expr)
 
     # not an exact match, but close enough, for now

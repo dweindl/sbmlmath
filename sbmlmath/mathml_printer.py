@@ -1,4 +1,5 @@
 """Convenience functions for libsbml core"""
+
 from numbers import Number
 
 import sympy as sp
@@ -56,7 +57,9 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
     def _print_SpeciesSymbol(self, sym: SpeciesSymbol):
         ci = self._print_Symbol(sym)
         if sym.representation_type:
-            ci.setAttribute("multi:representationType", sym.representation_type)
+            ci.setAttribute(
+                "multi:representationType", sym.representation_type
+            )
         if sym.species_reference:
             ci.setAttribute("multi:speciesReference", sym.species_reference)
         return ci

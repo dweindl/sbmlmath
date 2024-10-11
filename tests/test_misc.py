@@ -1,5 +1,4 @@
 import libsbml
-import pytest
 import sympy as sp
 
 from sbmlmath import *
@@ -55,7 +54,9 @@ def test_abs():
 
 
 def test_math_dimensionless():
-    xml = SBMLMathMLPrinter(literals_dimensionless=False).doprint(sp.Integer(1))
+    xml = SBMLMathMLPrinter(literals_dimensionless=False).doprint(
+        sp.Integer(1)
+    )
     assert "dimensionless" not in xml
 
     xml = SBMLMathMLPrinter(literals_dimensionless=True).doprint(sp.Integer(1))
@@ -152,7 +153,9 @@ def test_integer_overflow():
         </math>"""
 
     i = 2**31 - 1
-    assert (ast_node := libsbml.readMathMLFromString(get_mathml(i))) is not None
+    assert (
+        ast_node := libsbml.readMathMLFromString(get_mathml(i))
+    ) is not None
     assert str(i) in libsbml.writeMathMLToString(ast_node)
 
     # FIXME: change to assert not None, if that restriction is ever lifted
