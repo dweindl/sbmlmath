@@ -1,5 +1,7 @@
 import sympy as sp
 
+from sbmlmath.cfunction import *
+from sbmlmath.cfunction import DEF_URL_DELAY, DEF_URL_RATE_OF
 from sbmlmath.csymbol import *
 
 
@@ -31,3 +33,23 @@ def test_time_symbol():
     assert (2 * t1).has(TimeSymbol) is True
     assert (2 * t1).has(CSymbol) is True
     assert (sp.sympify("l * e * e * t")).has(TimeSymbol) is False
+
+
+def test_cfunction():
+    rate_of = CFunction("rateOf", definition_url=DEF_URL_RATE_OF)
+    # test that the cache works
+    assert rate_of is CFunction("rateOf", definition_url=DEF_URL_RATE_OF)
+    # test that definition URL is considered, not only the name
+    assert rate_of is not CFunction("rateOf", definition_url=DEF_URL_DELAY)
+
+    assert rate_of == CFunction("rateOf", definition_url=DEF_URL_RATE_OF)
+    assert rate_of != CFunction("rateOf", definition_url=DEF_URL_DELAY)
+    assert isinstance(rate_of, CFunction)
+    assert isinstance(rate_of, RateOf)
+    assert not isinstance(rate_of, delay)
+    a, b = sp.symbols("a b")
+    assert (rate_of(a) * 4).has(rate_of) is True
+    assert (rate_of(a) * 4).has(RateOf("rAteOf")) is True
+    assert rate_of(a) == rate_of(a)
+    assert rate_of(a) != rate_of(b)
+    assert (rate_of(a) * 4).has(RateOf) is False
