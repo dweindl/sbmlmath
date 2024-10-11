@@ -1,3 +1,4 @@
+from importlib.metadata import PackageNotFoundError, version
 from typing import Union
 
 import libsbml
@@ -19,6 +20,12 @@ __all__ = [
     *csymbol.__all__,
     *cfunction.__all__,
 ]
+
+try:
+    __version__ = version("sbmlmath")
+except PackageNotFoundError:
+    # package is not installed
+    pass
 
 
 def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:

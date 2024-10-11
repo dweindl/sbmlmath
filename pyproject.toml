@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sbmlmath"
-version = "0.1.1"
+dynamic = ["version"]
 authors = [
     {name = "Daniel Weindl", email = "sci@danielweindl.de"},
 ]
@@ -28,6 +28,8 @@ PyPI = "https://pypi.org/project/sbmlmath/"
 
 [project.optional-dependencies]
 test = ["pytest>=7", "pre-commit>=3"]
+
+[tool.setuptools_scm]
 
 [tool.ruff]
 line-length = 79
