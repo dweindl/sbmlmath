@@ -51,6 +51,9 @@ jobs:
         SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
       run: pytest -vv
 
+    - name: Run pre-commit hooks
+      run: pre-commit run --all-files
+
   test-macos:
     runs-on: macos-latest
 
