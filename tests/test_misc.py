@@ -4,6 +4,24 @@ import sympy as sp
 from sbmlmath import *
 
 
+def test_set_math():
+    """Test setting math on SBML objects."""
+    # create some model
+    doc = libsbml.SBMLDocument(3, 1)
+    model = doc.createModel()
+    s = model.createSpecies()
+    s.setId("s")
+    p = model.createParameter()
+    p.setId("p")
+    ia = model.createInitialAssignment()
+    ia.setSymbol("s")
+
+    # actual test
+    expr = sp.sympify("2 * p^2")
+    set_math(ia, expr)
+    assert expr == sbml_math_to_sympy(ia)
+
+
 def test_large_mathml():
     """
     lxml.etree.iterparse simply truncates long input (>2**15 chars);

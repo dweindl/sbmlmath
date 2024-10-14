@@ -11,6 +11,7 @@ from .mathml_printer import SBMLMathMLPrinter
 from .species_symbol import SpeciesSymbol
 
 __all__ = [
+    "set_math",
     "SBMLMathMLParser",
     "SBMLMathMLPrinter",
     "SpeciesSymbol",
@@ -75,3 +76,33 @@ def sbml_math_to_sympy(
     )
     mathml = libsbml.writeMathMLToString(ast_node)
     return SBMLMathMLParser().parse_str(mathml)
+
+
+def set_math(
+    element: libsbml.SBase,
+    expr: sp.Expr,
+) -> None:
+    """Set the math expression of an SBML object.
+
+    Args:
+        element:
+            The SBML object to set the math expression for.
+        expr:
+            The sympy expression to set as the math expression.
+    """
+    sbml_document = element.getSBMLDocument()
+    mathml = SBMLMathMLPrinter(
+        sbml_level=sbml_document.getLevel(),
+        sbml_version=sbml_document.getVersion(),
+    ).doprint(expr)
+
+    if ast_node := libsbml.readMathMLFromString(mathml):
+        if element.setMath(ast_node) == libsbml.LIBSBML_OPERATION_SUCCESS:
+            return
+        raise ValueError(
+            f"Error setting math expression:\n{expr}\n"
+            f"{mathml}\n{sbml_document.getErrorLog().toString()}"
+        )
+    raise ValueError(
+        f"Unknown error parsing math expression:\n{expr}\n{mathml}"
+    )
