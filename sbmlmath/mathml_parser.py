@@ -11,6 +11,7 @@ from lxml import etree
 from pint import UnitRegistry
 from sympy.logic.boolalg import Boolean, BooleanFalse, BooleanTrue
 
+from . import _DEFAULT_SBML_LEVEL, _DEFAULT_SBML_VERSION
 from .cfunction import CFunction
 from .csymbol import CSymbol
 from .species_symbol import SpeciesSymbol
@@ -140,8 +141,8 @@ class SBMLMathMLParser:
 
     See also: `MathML 2.0 specification <https://www.w3.org/TR/MathML2/>`_.
 
-    :param level: SBML level
-    :param version: SBML version
+    :param sbml_level: SBML level
+    :param sbml_version: SBML version
     :param ureg:
         Optional :class:`pint.UnitRegistry` to use for unit conversion.
     :param floats_as_rationals:
@@ -160,8 +161,8 @@ class SBMLMathMLParser:
 
     def __init__(
         self,
-        level: Union[int, str] = 3,
-        version: Union[int, str] = 2,
+        sbml_level: Union[int, str] = _DEFAULT_SBML_LEVEL,
+        sbml_version: Union[int, str] = _DEFAULT_SBML_VERSION,
         ureg: UnitRegistry = None,
         floats_as_rationals=True,
         ignore_units=False,
@@ -169,13 +170,11 @@ class SBMLMathMLParser:
     ):
         """Constructor"""
         self.ureg = ureg or _ureg or UnitRegistry()
-        self.sbml_core_ns = (
-            f"http://www.sbml.org/sbml/level{level}/version{version}/core"
-        )
+        self.sbml_core_ns = f"http://www.sbml.org/sbml/level{sbml_level}/version{sbml_version}/core"
         #  TODO {prefix=>url}
         self.sbml_multi_ns = (
             # L3V2 doesn't work
-            f"http://www.sbml.org/sbml/level{level}/version1/multi/version1"
+            f"http://www.sbml.org/sbml/level{sbml_level}/version1/multi/version1"
         )
         self.floats_as_rationals = floats_as_rationals
         self.ignore_units = ignore_units
