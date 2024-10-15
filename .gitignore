@@ -6,3 +6,4 @@ dist/
 activate
 create_venv.sh
 *deleteme*
+build/
