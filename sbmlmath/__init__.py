@@ -56,13 +56,26 @@ def sbml_math_to_sympy(
     Returns:
         The resulting sympy expression.
     """
-    ast_node = (
-        sbml_obj
-        if isinstance(sbml_obj, libsbml.ASTNode)
-        else sbml_obj.getMath()
+    if isinstance(sbml_obj, libsbml.ASTNode):
+        ast_node = sbml_obj
+        sbml_obj = ast_node.getParentSBMLObject()
+    else:
+        ast_node = sbml_obj.getMath()
+
+    level = (
+        sbml_obj.getLevel() if sbml_obj is not None else _DEFAULT_SBML_LEVEL
     )
-    mathml = libsbml.writeMathMLToString(ast_node)
-    return SBMLMathMLParser().parse_str(mathml)
+    version = (
+        sbml_obj.getVersion()
+        if sbml_obj is not None
+        else _DEFAULT_SBML_VERSION
+    )
+    mathml = libsbml.writeMathMLWithNamespaceToString(
+        ast_node, libsbml.SBMLNamespaces(level, version)
+    )
+    return SBMLMathMLParser(sbml_level=level, sbml_version=version).parse_str(
+        mathml
+    )
 
 
 def set_math(
@@ -77,15 +90,15 @@ def set_math(
         expr:
             The sympy expression to set as the math expression.
     """
-    sbml_document = element.getSBMLDocument()
     mathml = SBMLMathMLPrinter(
-        sbml_level=sbml_document.getLevel(),
-        sbml_version=sbml_document.getVersion(),
+        sbml_level=element.getLevel(),
+        sbml_version=element.getVersion(),
     ).doprint(expr)
 
     if ast_node := libsbml.readMathMLFromString(mathml):
         if element.setMath(ast_node) == libsbml.LIBSBML_OPERATION_SUCCESS:
             return
+        sbml_document = element.getSBMLDocument()
         raise ValueError(
             f"Error setting math expression:\n{expr}\n"
             f"{mathml}\n{sbml_document.getErrorLog().toString()}"
