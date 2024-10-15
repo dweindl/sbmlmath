@@ -47,6 +47,9 @@ lint.ignore = [
 ]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["T201"] # print statement
-
+"sbmlmath/__init__.py" = [
+    "F401",  # module imported but unused
+    "E402",  # import not at top of file
+]
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --ignore=doc/conf.py"

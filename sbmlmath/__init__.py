@@ -4,29 +4,16 @@ from typing import Union
 import libsbml
 import sympy as sp
 
-from .cfunction import *
-from .csymbol import *
-from .mathml_parser import SBMLMathMLParser
-from .mathml_printer import SBMLMathMLPrinter
-from .species_symbol import SpeciesSymbol
-
-__all__ = [
-    "set_math",
-    "SBMLMathMLParser",
-    "SBMLMathMLPrinter",
-    "SpeciesSymbol",
-    "TimeSymbol",
-    "sympy_to_sbml_math",
-    "sbml_math_to_sympy",
-    *csymbol.__all__,
-    *cfunction.__all__,
-]
-
 try:
     __version__ = version("sbmlmath")
 except PackageNotFoundError:
     # package is not installed
     pass
+
+#: Default SBML level if not specified otherwise.
+_DEFAULT_SBML_LEVEL = 3
+#: Default SBML version if not specified otherwise.
+_DEFAULT_SBML_VERSION = 2
 
 
 def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
@@ -106,3 +93,22 @@ def set_math(
     raise ValueError(
         f"Unknown error parsing math expression:\n{expr}\n{mathml}"
     )
+
+
+from .cfunction import *
+from .csymbol import *
+from .mathml_parser import SBMLMathMLParser
+from .mathml_printer import SBMLMathMLPrinter
+from .species_symbol import SpeciesSymbol
+
+__all__ = [
+    "set_math",
+    "SBMLMathMLParser",
+    "SBMLMathMLPrinter",
+    "SpeciesSymbol",
+    "TimeSymbol",
+    "sympy_to_sbml_math",
+    "sbml_math_to_sympy",
+    *csymbol.__all__,
+    *cfunction.__all__,
+]

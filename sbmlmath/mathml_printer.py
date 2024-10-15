@@ -5,6 +5,7 @@ from numbers import Number
 import sympy as sp
 from sympy.printing.mathml import MathMLContentPrinter
 
+from . import _DEFAULT_SBML_LEVEL, _DEFAULT_SBML_VERSION
 from .csymbol import CSymbol
 from .species_symbol import SpeciesSymbol
 
@@ -26,8 +27,8 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         self,
         *args,
         literals_dimensionless=True,
-        sbml_level: int = 3,
-        sbml_version: int = 2,
+        sbml_level: int = _DEFAULT_SBML_LEVEL,
+        sbml_version: int = _DEFAULT_SBML_VERSION,
         **kwargs,
     ):
         """Construct.
