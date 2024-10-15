@@ -2,6 +2,7 @@
 
 import contextlib
 import operator as operators
+import warnings
 from functools import reduce
 from io import BytesIO
 from typing import Union
@@ -169,6 +170,12 @@ class SBMLMathMLParser:
         symbol_kwargs=None,
     ):
         """Constructor"""
+        if sbml_level < 3:
+            warnings.warn(
+                "SBML level < 3 has not been thoroughly tested.",
+                UserWarning,
+                stacklevel=2,
+            )
         self.ureg = ureg or _ureg or UnitRegistry()
         self.sbml_core_ns = f"http://www.sbml.org/sbml/level{sbml_level}/version{sbml_version}/core"
         #  TODO {prefix=>url}

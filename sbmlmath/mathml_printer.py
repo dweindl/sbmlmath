@@ -1,5 +1,6 @@
 """Convenience functions for libsbml core"""
 
+import warnings
 from numbers import Number
 
 import sympy as sp
@@ -37,6 +38,13 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             Assume numeric literals are dimensionless.
         """
         super().__init__(*args, **kwargs)
+
+        if sbml_level < 3:
+            warnings.warn(
+                "SBML level < 3 has not been thoroughly tested.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         self.mathml_ns = 'xmlns="http://www.w3.org/1998/Math/MathML"'
         self.sbml_ns = f'xmlns:sbml="http://www.sbml.org/sbml/level{sbml_level}/version{sbml_version}/core"'
