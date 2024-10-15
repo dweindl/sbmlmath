@@ -16,7 +16,7 @@ if not sbml_test_suite_root:
     pytest.skip("$SBML_TEST_SUITE_ROOT not set", allow_module_level=True)
 
 cases_root = Path(sbml_test_suite_root, "cases", "semantic")
-cases = sorted(cases_root.rglob("*-sbml-l3v2.xml"))
+cases = sorted(cases_root.rglob("*-sbml-l3v?.xml"))
 assert len(cases)
 
 
