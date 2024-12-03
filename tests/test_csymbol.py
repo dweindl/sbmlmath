@@ -57,3 +57,7 @@ def test_cfunction():
 
     assert UndefinedFunction(rate_of.name) != rate_of
     assert UndefinedFunction(rate_of.name)(a).has(rate_of) is False
+
+    assert rate_of(1) == 0
+    assert rate_of(1, evaluate=False).has(rate_of) is True
+    assert rate_of(1, evaluate=False).doit() == 0

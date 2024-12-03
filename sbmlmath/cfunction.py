@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from sympy import Number
 from sympy.core.function import UndefinedFunction
 
 __all__ = ["CFunction", "delay", "rate_of", "Delay", "RateOf"]
@@ -57,6 +58,8 @@ class CFunction(UndefinedFunction):
         assert not hasattr(obj, "encoding")
         obj.definition_url = definition_url
         obj.encoding = encoding
+        if hasattr(cls, "eval"):
+            obj.eval = cls.eval
 
         cls._cache[cache_key] = obj
 
@@ -126,12 +129,20 @@ class RateOf(CFunction):
         my_rate_of(a)
         >>> rate_of(a) == my_rate_of(a)
         True
+        >>> rate_of(1)
+        0
     """
 
     DEFINITION_URL = DEF_URL_RATE_OF
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, *args, **kwargs)
+
+    @classmethod
+    def eval(cls, x):
+        if isinstance(x, Number):
+            # the rate of a constant is 0
+            return 0
 
 
 CFunction.register_subclass(RateOf)
