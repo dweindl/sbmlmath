@@ -52,4 +52,4 @@ lint.ignore = [
     "E402",  # import not at top of file
 ]
 [tool.pytest.ini_options]
-addopts = "--doctest-modules --ignore=doc/conf.py"
+addopts = "--doctest-modules --ignore=doc/conf.py --ignore=sbml-test-suite"
