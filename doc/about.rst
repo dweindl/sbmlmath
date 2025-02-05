@@ -1,6 +1,13 @@
 sbmlmath — a Python library for handling SBML MathML
 ====================================================
 
+.. image:: https://img.shields.io/pypi/v/sbmlmath
+  :target: https://pypi.org/project/sbmlmath/
+  :alt: PyPI
+.. image:: https://zenodo.org/badge/617871948.svg
+  :target: https://doi.org/10.5281/zenodo.14814669
+  :alt: DOI
+
 This is a Python library for interconverting `SymPy <https://github.com/sympy/sympy/>`_
 expressions and `SBML <https://sbml.org/>`_-MathML.
 SBML uses a subset of `MathML <https://www.w3.org/Math/>`_ that this library
