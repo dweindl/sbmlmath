@@ -13,8 +13,13 @@ authors:
     email: sci@danielweindl.de
     orcid: 'https://orcid.org/0000-0001-9963-6057'
 repository-code: 'https://github.com/dweindl/sbmlmath/'
+url: 'https://sbmlmath.readthedocs.io/'
+abstract: >-
+  sbmlmath is a Python package for the interconversion of
+  SBML MathML and sympy expressions.
 keywords:
   - SBML
   - SymPy
   - math expressions
+  - Python
 license: BSD-3-Clause
