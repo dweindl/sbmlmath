@@ -38,7 +38,7 @@ def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
         return ast_node
 
     raise ValueError(
-        f"Unknown error handling math expression:\n{sp_expr}\n" f"{mathml}"
+        f"Unknown error handling math expression:\n{sp_expr}\n{mathml}"
     )
 
 
