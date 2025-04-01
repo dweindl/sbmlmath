@@ -286,7 +286,7 @@ class SBMLMathMLParser:
                 and len(operands) >= 3
             ):
                 # n-ary relational operators:
-                #  a < b < c cannot directory be represented in sympy.
+                #  a < b < c cannot directly be represented in sympy.
                 #  either change to `a < b and b < c`, to be sympy-evaluatable,
                 #  or to Function('MathML_Lt')(a, b, c), which will cycle
                 #  (although potentially collide with other functions with
