@@ -1,7 +1,9 @@
 import libsbml
 import sympy as sp
+from sympy import Piecewise
 
 from sbmlmath import *
+from sbmlmath.mathml_parser import _bool2num
 
 
 def test_set_math():
@@ -205,4 +207,16 @@ def test_integer_overflow():
             SBMLMathMLPrinter().doprint(sp.Integer(-(2**31) - 1))
         )
         is not None
+    )
+
+
+def test_bool2num():
+    a, b = sp.symbols("a, b")
+    assert _bool2num(1) == 1
+    assert _bool2num(a) is a
+    assert _bool2num(sp.true) == 1
+    assert _bool2num(sp.false) == 0
+    assert _bool2num(a | b) == Piecewise(
+        (1, a | b),
+        (0, True),
     )

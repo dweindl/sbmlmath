@@ -9,7 +9,13 @@ from typing import Union
 import sympy as sp
 from lxml import etree
 from pint import UnitRegistry
-from sympy.logic.boolalg import Boolean, BooleanFalse, BooleanTrue
+from sympy import Piecewise
+from sympy.logic.boolalg import (
+    Boolean,
+    BooleanFalse,
+    BooleanFunction,
+    BooleanTrue,
+)
 
 from . import _DEFAULT_SBML_LEVEL, _DEFAULT_SBML_VERSION
 from .cfunction import CFunction
@@ -527,10 +533,17 @@ class SBMLMathMLParser:
         return name
 
 
-def _bool2num(x):
-    """Convert sympy Booleans to integers."""
+def _bool2num(x: sp.Basic) -> sp.Basic:
+    """Convert sympy Booleans or BooleanFunctions to expressions or Integers.
+
+    Return anything else as is
+    """
     if isinstance(x, BooleanFalse):
         return sp.Integer(0)
     if isinstance(x, BooleanTrue):
         return sp.Integer(1)
+    if isinstance(x, BooleanFunction):
+        #  `Piecewise((1, expr),(0,True))`
+        return Piecewise((sp.Integer(1), x), (sp.Integer(0), sp.true))
+
     return x
