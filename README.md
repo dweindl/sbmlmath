@@ -15,7 +15,7 @@ Main functionality:
 * SBML MathML -> sympy
   * in particular for cases where `sympy.sympify(libsbml.formulaToL3String(...))`
     won't do the job
-    (mind the differences operator precedence between
+    (mind, e.g., the differences in operator precedence between
     sympy/[Python](https://docs.python.org/3/reference/expressions.html#operator-precedence)
     and [libsbml L3 formulas](https://synonym.caltech.edu/software/libsbml/5.18.0/docs/formatted/python-api/libsbml-math.html#math-l3)!)
   * retaining unit annotations and other `<ci>` attributes
