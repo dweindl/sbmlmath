@@ -34,7 +34,7 @@ def test_sbml(sbml_file):
     sbml_doc = sbml_reader.readSBMLFromFile(str(sbml_file))
     sbml_model = sbml_doc.getModel()
 
-    parser = SBMLMathMLParser()
+    parser = SBMLMathMLParser(evaluate=True)
     for element in sbml_model.getListOfAllElements():
         if (get_math := getattr(element, "getMath", None)) and (
             mathml := libsbml.writeMathMLToString(get_math())

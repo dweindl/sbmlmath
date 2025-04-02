@@ -232,3 +232,7 @@ def test_num2_bool():
     assert _num2bool(-0) == sp.false
     assert _num2bool(0.0) == sp.false
     assert _num2bool(-0.0) == sp.false
+
+    # no "conversion" if piecewise expressions are already boolean!
+    expr = sp.Piecewise((sp.true, a < 10), (sp.false, sp.true))
+    assert _num2bool(expr) == expr

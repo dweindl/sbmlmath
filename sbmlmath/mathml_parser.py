@@ -13,7 +13,6 @@ from sympy import Piecewise
 from sympy.logic.boolalg import (
     Boolean,
     BooleanFalse,
-    BooleanFunction,
     BooleanTrue,
 )
 
@@ -593,11 +592,9 @@ def _bool2num(x: sp.Basic) -> sp.Basic:
         return sp.Integer(0)
     if isinstance(x, BooleanTrue):
         return sp.Integer(1)
-    if isinstance(x, BooleanFunction):
+    if isinstance(x, Boolean) and not isinstance(x, sp.Symbol):
         #  `Piecewise((1, expr),(0,True))`
         return Piecewise((sp.Integer(1), x), (sp.Integer(0), sp.true))
-    if isinstance(x, Boolean) and not isinstance(x, sp.Symbol):
-        raise NotImplementedError(f"Unhandled type: {type(x)} ({x})")
 
     return x
 
@@ -608,5 +605,10 @@ def _num2bool(x: sp.Basic) -> sp.Basic:
     Return anything else as is.
     """
     if not isinstance(x, Boolean):
+        if isinstance(x, Piecewise):
+            # apply recursively to the expressiosn
+            return Piecewise(
+                *((_num2bool(expr), cond) for expr, cond in x.args)
+            )
         return Piecewise((True, x != 0), (False, True))
     return x
