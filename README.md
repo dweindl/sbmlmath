@@ -52,5 +52,5 @@ pip install sbmlmath
 
 The latest development version from GitHub:
 ```bash
-pip install https://github.com/dweindl/sbmlmath/archive/main.zip
+pip install git+https://github.com/dweindl/sbmlmath.git#egg=sbmlmath
 ```
