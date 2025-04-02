@@ -2,7 +2,6 @@
 
 import contextlib
 import operator as operators
-import warnings
 from functools import reduce
 from io import BytesIO
 from typing import Union
@@ -142,8 +141,9 @@ class SBMLMathMLParser:
 
     See also: `MathML 2.0 specification <https://www.w3.org/TR/MathML2/>`_.
 
-    :param sbml_level: SBML level
-    :param sbml_version: SBML version
+    :param sbml_level: SBML level.
+        Note that SBML level < 3 has not been thoroughly tested.
+    :param sbml_version: SBML version.
     :param ureg:
         Optional :class:`pint.UnitRegistry` to use for unit conversion.
     :param floats_as_rationals:
@@ -170,12 +170,6 @@ class SBMLMathMLParser:
         symbol_kwargs=None,
     ):
         """Constructor"""
-        if sbml_level < 3:
-            warnings.warn(
-                "SBML level < 3 has not been thoroughly tested.",
-                UserWarning,
-                stacklevel=2,
-            )
         self.ureg = ureg or _ureg or UnitRegistry()
         self.sbml_core_ns = f"http://www.sbml.org/sbml/level{sbml_level}/version{sbml_version}/core"
         #  TODO {prefix=>url}
