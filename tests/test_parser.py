@@ -24,7 +24,7 @@ from sbmlmath import *
 def test_mathmlparser_vs_sympify(formula_str):
     ast_node = libsbml.parseL3Formula(formula_str)
     mathml = libsbml.writeMathMLToString(ast_node)
-    parser = SBMLMathMLParser(floats_as_rationals=False)
+    parser = SBMLMathMLParser(floats_as_rationals=False, evaluate=True)
     sym_expr = parser.parse_str(mathml)
     print(sym_expr)
     assert sym_expr == sp.sympify(formula_str)

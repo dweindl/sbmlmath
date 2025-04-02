@@ -21,7 +21,7 @@ def test_set_math():
     # actual test
     expr = sp.sympify("2 * p^2")
     set_math(ia, expr)
-    assert expr == sbml_math_to_sympy(ia)
+    assert expr == sbml_math_to_sympy(ia, ignore_units=True)
 
 
 def test_large_mathml():
@@ -40,7 +40,7 @@ def test_large_mathml():
     print(len(mathml_exp))
     assert len(mathml_exp) >= 2**15
 
-    assert SBMLMathMLParser().parse_str(mathml_exp) == sp.sympify(
+    assert SBMLMathMLParser(evaluate=True).parse_str(mathml_exp) == sp.sympify(
         "600 * some_long_identifier_whose_name_doesnt_matter"
     )
 

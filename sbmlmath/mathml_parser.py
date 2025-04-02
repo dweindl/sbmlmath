@@ -32,6 +32,29 @@ _ureg = UnitRegistry()
 _ureg.Quantity.name = property(fget=lambda s: f"({s})")
 _ureg.Quantity_sympy_ = lambda s: sp.sympify(f"{s.m}*{s.u:~}")
 
+
+# some operator implementations to handle `evaluate`
+#  *and* be compatible with non Expr operands
+# (non-Expr is deprecated for Add, Mul, Pow, ...)
+def _divide(*args, evaluate: bool = False):
+    with sp.evaluate(evaluate):
+        return operators.truediv(*args)
+
+
+def _mul(*args, evaluate: bool = False):
+    with sp.evaluate(evaluate):
+        if len(args) >= 2:
+            return reduce(operators.mul, args[1:], args[0])
+        if len(args) == 1:
+            return args[0]
+        return sp.Integer(1)
+
+
+def _pow(base, exponent, evaluate: bool = False):
+    with sp.evaluate(evaluate):
+        return base**exponent
+
+
 mathml_op_sympy_trigonometric = {
     f"{{{mathml_ns}}}sin": sp.sin,
     f"{{{mathml_ns}}}cos": sp.cos,
@@ -59,27 +82,39 @@ mathml_op_sympy_trigonometric = {
     f"{{{mathml_ns}}}arccoth": sp.acoth,
 }
 mathml_op_sympy_boolean = {
-    f"{{{mathml_ns}}}and": sp.And,
-    f"{{{mathml_ns}}}or": sp.Or,
-    f"{{{mathml_ns}}}xor": sp.Xor,
+    f"{{{mathml_ns}}}and": lambda *args, **kwargs: sp.And(*args, **kwargs)
+    if kwargs.get("evaluate", False)
+    else sp.And(*map(_num2bool, args), **kwargs),
+    f"{{{mathml_ns}}}or": lambda *args, **kwargs: sp.Or(*args, **kwargs)
+    if kwargs.get("evaluate", False)
+    else sp.Or(*map(_num2bool, args), **kwargs),
+    f"{{{mathml_ns}}}xor": lambda *args, **kwargs: sp.Xor(*args, **kwargs)
+    if kwargs.get("evaluate", False)
+    else sp.Xor(*map(_num2bool, args), **kwargs),
 }
 
 mathml_op_sympy = {
-    f"{{{mathml_ns}}}times": lambda *args: reduce(
-        operators.mul, args, sp.Integer(1)
+    # Using non-Expr arguments in Mul and Pow is deprecated
+    #  and we might use pint.Quantitity, so we use operator.mul
+    f"{{{mathml_ns}}}times": _mul,
+    f"{{{mathml_ns}}}divide": _divide,
+    f"{{{mathml_ns}}}power": _pow,
+    f"{{{mathml_ns}}}eq": lambda *args, **kwargs: sp.Equality(*args, **kwargs),
+    f"{{{mathml_ns}}}neq": lambda *args, **kwargs: sp.Unequality(
+        *args, **kwargs
     ),
-    f"{{{mathml_ns}}}divide": operators.truediv,
-    f"{{{mathml_ns}}}power": lambda base, exponent: base**exponent,
-    f"{{{mathml_ns}}}eq": lambda *args: sp.Equality(*args, evaluate=False),
-    f"{{{mathml_ns}}}neq": lambda *args: sp.Unequality(*args, evaluate=False),
-    f"{{{mathml_ns}}}lt": lambda *args: sp.StrictLessThan(
-        *args, evaluate=False
+    f"{{{mathml_ns}}}lt": lambda *args, **kwargs: sp.StrictLessThan(
+        *args, **kwargs
     ),
-    f"{{{mathml_ns}}}gt": lambda *args: sp.StrictGreaterThan(
-        *args, evaluate=False
+    f"{{{mathml_ns}}}gt": lambda *args, **kwargs: sp.StrictGreaterThan(
+        *args, **kwargs
     ),
-    f"{{{mathml_ns}}}geq": lambda *args: sp.GreaterThan(*args, evaluate=False),
-    f"{{{mathml_ns}}}leq": lambda *args: sp.LessThan(*args, evaluate=False),
+    f"{{{mathml_ns}}}geq": lambda *args, **kwargs: sp.GreaterThan(
+        *args, **kwargs
+    ),
+    f"{{{mathml_ns}}}leq": lambda *args, **kwargs: sp.LessThan(
+        *args, **kwargs
+    ),
     f"{{{mathml_ns}}}max": sp.Max,
     f"{{{mathml_ns}}}min": sp.Min,
     f"{{{mathml_ns}}}abs": sp.Abs,
@@ -174,6 +209,7 @@ class SBMLMathMLParser:
         floats_as_rationals=True,
         ignore_units=False,
         symbol_kwargs=None,
+        evaluate=False,
     ):
         """Constructor"""
         self.ureg = ureg or _ureg or UnitRegistry()
@@ -188,6 +224,7 @@ class SBMLMathMLParser:
         self.symbol_kwargs = (
             {} if symbol_kwargs is None else symbol_kwargs.copy()
         )
+        self.evaluate = evaluate
 
     def parse_file(self, file_like) -> sp.Expr:
         """Parse a file-like object containing MathML.
@@ -299,7 +336,11 @@ class SBMLMathMLParser:
                 for i in range(len(sym_operands) - 1):
                     expr = sp.And(
                         expr,
-                        sym_operator(sym_operands[i], sym_operands[i + 1]),
+                        sym_operator(
+                            sym_operands[i],
+                            sym_operands[i + 1],
+                            evaluate=self.evaluate,
+                        ),
                     )
                 return expr
 
@@ -312,18 +353,27 @@ class SBMLMathMLParser:
             sym_operands = list(map(_bool2num, sym_operands))
 
         with contextlib.suppress(KeyError):
-            return mathml_op_sympy[operator.tag](*sym_operands)
+            return mathml_op_sympy[operator.tag](
+                *sym_operands, evaluate=self.evaluate
+            )
 
         if operator.tag == f"{{{mathml_ns}}}plus":
-            # note: the unary version is handled above
-            # return sp.Add(*sym_operands)
-            return reduce(operators.add, sym_operands, sp.Integer(0))
+            with sp.evaluate(self.evaluate):
+                if len(sym_operands) >= 2:
+                    return reduce(
+                        operators.add, sym_operands[1:], sym_operands[0]
+                    )
+                if len(sym_operands) == 1:
+                    return sym_operands[0]
+                if len(sym_operands) == 0:
+                    return sp.Integer(0)
 
         if operator.tag == f"{{{mathml_ns}}}minus":
-            if len(sym_operands) == 2:
-                return sym_operands[0] - sym_operands[1]
-            if len(sym_operands) == 1:
-                return -sym_operands[0]
+            with sp.evaluate(self.evaluate):
+                if len(sym_operands) == 2:
+                    return sym_operands[0] - sym_operands[1]
+                if len(sym_operands) == 1:
+                    return -sym_operands[0]
             raise AssertionError(list(element))
 
         if operator.tag == f"{{{mathml_ns}}}root":
@@ -335,7 +385,8 @@ class SBMLMathMLParser:
                 degree = sym_operands[0]
                 assert operands[0].tag == f"{{{mathml_ns}}}degree"
 
-            return sym_operands[-1] ** (1 / degree)
+            with sp.evaluate(self.evaluate):
+                return sym_operands[-1] ** (1 / degree)
 
         if operator.tag == f"{{{mathml_ns}}}log":
             assert len(operands) == 2
@@ -343,7 +394,7 @@ class SBMLMathMLParser:
             assert len(operands[0]) == 1
             base, x = sym_operands
             # won't cycle - will be transformed to ``log(x)/log(base)``
-            return sp.log(x, base)
+            return sp.log(x, base, evaluate=self.evaluate)
 
         if operator.tag == f"{{{mathml_ns}}}quotient":
             # there is no direct correspondence for integer division in sympy,
@@ -351,7 +402,8 @@ class SBMLMathMLParser:
             # a // b = (a - a mod b) / b
             assert len(operands) == 2
             a, b = sym_operands
-            return (a - a % b) / b
+            with sp.evaluate(self.evaluate):
+                return (a - a % b) / b
 
         name = self.preprocess_symbol_name(operator.text.strip(), operator)
 
@@ -482,7 +534,9 @@ class SBMLMathMLParser:
                 )
             else:
                 raise AssertionError(e.tag)
-        return sp.Piecewise(*expr_cond_pairs, evaluate=False)
+
+        with sp.evaluate(self.evaluate):
+            return sp.Piecewise(*expr_cond_pairs)
 
     def handle_lambda(self, element: etree._Element) -> sp.Expr:
         # See https://www.w3.org/TR/MathML2/chapter4.html#id.4.2.1.7

@@ -43,7 +43,7 @@ def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
 
 
 def sbml_math_to_sympy(
-    sbml_obj: Union[libsbml.SBase, libsbml.ASTNode],
+    sbml_obj: Union[libsbml.SBase, libsbml.ASTNode], **kwargs
 ) -> sp.Expr:
     """Convert SBML MathML to sympy expression.
 
@@ -53,6 +53,9 @@ def sbml_math_to_sympy(
         sbml_obj:
             The SBML object to be converted.
             (Either directly the ASTNode or the surrounding SBase object).
+        kwargs:
+            Additional keyword arguments passed to
+            :attr:`SBMLMathMLParser.__init__`.
     Returns:
         The resulting sympy expression.
     """
@@ -73,9 +76,9 @@ def sbml_math_to_sympy(
     mathml = libsbml.writeMathMLWithNamespaceToString(
         ast_node, libsbml.SBMLNamespaces(level, version)
     )
-    return SBMLMathMLParser(sbml_level=level, sbml_version=version).parse_str(
-        mathml
-    )
+    return SBMLMathMLParser(
+        sbml_level=level, sbml_version=version, **kwargs
+    ).parse_str(mathml)
 
 
 def set_math(
