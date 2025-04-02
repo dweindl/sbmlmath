@@ -11,7 +11,7 @@ authors = [
 description = "SBML Math <-> SymPy"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
 dependencies = [
     "python-libsbml>=5.20.4",
     "sympy",
@@ -28,6 +28,9 @@ PyPI = "https://pypi.org/project/sbmlmath/"
 
 [project.optional-dependencies]
 test = ["pytest>=7", "pre-commit>=3"]
+
+[tool.setuptools]
+packages = ["sbmlmath"]
 
 [tool.setuptools_scm]
 
