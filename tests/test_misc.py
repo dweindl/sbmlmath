@@ -3,7 +3,7 @@ import sympy as sp
 from sympy import Piecewise
 
 from sbmlmath import *
-from sbmlmath.mathml_parser import _bool2num
+from sbmlmath.mathml_parser import _bool2num, _num2bool
 
 
 def test_set_math():
@@ -220,3 +220,15 @@ def test_bool2num():
         (1, a | b),
         (0, True),
     )
+
+
+def test_num2_bool():
+    a, b = sp.symbols("a, b")
+
+    assert _num2bool(sp.true) == sp.true
+    assert _num2bool(0.1) == sp.true
+    assert _num2bool(-0.1) == sp.true
+    assert _num2bool(0) == sp.false
+    assert _num2bool(-0) == sp.false
+    assert _num2bool(0.0) == sp.false
+    assert _num2bool(-0.0) == sp.false

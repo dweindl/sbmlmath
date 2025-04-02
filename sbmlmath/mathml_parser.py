@@ -466,13 +466,10 @@ class SBMLMathMLParser:
             if e.tag == f"{{{mathml_ns}}}piece":
                 assert len(e) == 2
                 cond = self._parse_element(e[1])
-                if not isinstance(cond, Boolean) and not isinstance(
-                    cond, sp.Piecewise
-                ):
-                    raise NotImplementedError(
-                        "Cannot handle non-boolean piecewise conditions: "
-                        f"{cond}"
-                    )
+                # Only Boolean conditions are supported
+                #  -> convert
+                # this won't round-trip
+                cond = _num2bool(cond)
                 expr_cond_pairs.append(
                     (self._parse_element(e[0]), cond),
                 )
@@ -545,5 +542,17 @@ def _bool2num(x: sp.Basic) -> sp.Basic:
     if isinstance(x, BooleanFunction):
         #  `Piecewise((1, expr),(0,True))`
         return Piecewise((sp.Integer(1), x), (sp.Integer(0), sp.true))
+    if isinstance(x, Boolean) and not isinstance(x, sp.Symbol):
+        raise NotImplementedError(f"Unhandled type: {type(x)} ({x})")
 
+    return x
+
+
+def _num2bool(x: sp.Basic) -> sp.Basic:
+    """Convert non-Booleans to Boolean expressions.
+
+    Return anything else as is.
+    """
+    if not isinstance(x, Boolean):
+        return Piecewise((True, x != 0), (False, True))
     return x
