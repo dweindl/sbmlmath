@@ -460,11 +460,15 @@ class SBMLMathMLParser:
         expr_cond_pairs = []
         for e in element:
             # TODO: cannot currently handle functions as condition-arguments.
-            #   they need to be derived sympy.BooleanFunction
+            #   they need to be derived from `sympy.BooleanFunction`
+            #   Nested piecewise functions may work, though, if the inner
+            #   expressions are all Boolean
             if e.tag == f"{{{mathml_ns}}}piece":
                 assert len(e) == 2
                 cond = self._parse_element(e[1])
-                if not isinstance(cond, Boolean):
+                if not isinstance(cond, Boolean) and not isinstance(
+                    cond, sp.Piecewise
+                ):
                     raise NotImplementedError(
                         "Cannot handle non-boolean piecewise conditions: "
                         f"{cond}"
