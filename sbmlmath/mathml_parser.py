@@ -90,6 +90,7 @@ mathml_op_sympy_boolean = {
     f"{{{mathml_ns}}}xor": lambda *args, **kwargs: sp.Xor(*args, **kwargs)
     if kwargs.get("evaluate", False)
     else sp.Xor(*map(_num2bool, args), **kwargs),
+    f"{{{mathml_ns}}}implies": sp.Implies,
 }
 
 mathml_op_sympy = {
@@ -124,7 +125,6 @@ mathml_op_sympy = {
     f"{{{mathml_ns}}}ln": sp.log,
     f"{{{mathml_ns}}}not": sp.Not,
     f"{{{mathml_ns}}}rem": sp.Mod,
-    f"{{{mathml_ns}}}implies": sp.Implies,
     **mathml_op_sympy_trigonometric,
     **mathml_op_sympy_boolean,
 }
