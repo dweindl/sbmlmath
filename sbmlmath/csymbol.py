@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-__all__ = ["CSymbol", "TimeSymbol"]
+__all__ = ["CSymbol", "TimeSymbol", "avogadro"]
+
 
 #: The `Avogadro constant <https://en.wikipedia.org/wiki/Avogadro_constant>`_
 # as defined in SBML L3V2 section 3.4.6.
@@ -87,11 +88,22 @@ class CSymbol(sp.Dummy):
             return SBML_L3V2_AVOGADRO_VALUE
         return super().__float__()
 
+    def _eval_evalf(self, prec):
+        if self.definition_url == "http://www.sbml.org/sbml/symbols/avogadro":
+            return sp.Float(SBML_L3V2_AVOGADRO_VALUE)
+        return super()._eval_evalf()
+
     @classmethod
     def register_subclass(cls, derived_class: type[CSymbol]):
         cls._definition_url_to_derived_class[derived_class.DEFINITION_URL] = (
             derived_class
         )
+
+
+#: SBML's `Avogadro constant <https://en.wikipedia.org/wiki/Avogadro_constant>`_
+avogadro = CSymbol(
+    "avogadro", definition_url="http://www.sbml.org/sbml/symbols/avogadro"
+)
 
 
 class TimeSymbol(CSymbol):

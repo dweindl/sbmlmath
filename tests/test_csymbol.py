@@ -61,3 +61,9 @@ def test_cfunction():
     assert rate_of(1) == 0
     assert rate_of(1, evaluate=False).has(rate_of) is True
     assert rate_of(1, evaluate=False).doit() == 0
+
+
+def test_avogadro():
+    from sbmlmath import avogadro
+
+    assert avogadro.evalf() == float(avogadro)
