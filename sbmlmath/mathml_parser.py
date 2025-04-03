@@ -343,11 +343,8 @@ class SBMLMathMLParser:
                     )
                 return expr
 
-        # TODO: need to handle boolean->{int,float} conversion via
-        #  `Piecewise((1, expr),(0,True))`
-        #  {int,float} -> bool
-        #  `Piecewise((True, expr != 0),(False,True))`
-        #  as sympy doesn't do that automatically
+        # explicit boolean->{int,float} conversion for non-boolean functions,
+        #  since sympy does not do that automatically
         if operator.tag not in mathml_op_sympy_boolean:
             sym_operands = list(map(_bool2num, sym_operands))
 
@@ -584,9 +581,12 @@ class SBMLMathMLParser:
 
 
 def _bool2num(x: sp.Basic) -> sp.Basic:
-    """Convert sympy Booleans or BooleanFunctions to expressions or Integers.
+    """Convert sympy Booleans to expressions or Integers.
 
-    Return anything else as is
+    Peforms boolean->{int,float} conversion via
+    ``Piecewise((1, expr), (0, True))``.
+
+    Return anything else as is.
     """
     if isinstance(x, BooleanFalse):
         return sp.Integer(0)
@@ -601,6 +601,10 @@ def _bool2num(x: sp.Basic) -> sp.Basic:
 
 def _num2bool(x: sp.Basic) -> sp.Basic:
     """Convert non-Booleans to Boolean expressions.
+
+    Convert non-Boolean expressions to Piecewise or Boolean expressions:
+
+    ``expr -> Piecewise((True, expr != 0), (False, True))``
 
     Return anything else as is.
     """
