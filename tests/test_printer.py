@@ -1,3 +1,8 @@
+from math import fabs
+
+import libsbml
+from sympy import Rational
+
 from sbmlmath import SBMLMathMLPrinter, SpeciesSymbol
 
 
@@ -22,4 +27,19 @@ def test_species_symbol_spec_ref():
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
         '<ci multi:speciesReference="ref_to_A">A</ci>'
         "</math>"
+    )
+
+
+def test_print_large_rational():
+    # too large for SBML int32 -> must be printed as float
+    assert "rational" not in SBMLMathMLPrinter().doprint(Rational(1, 2**42))
+    assert "rational" not in SBMLMathMLPrinter().doprint(Rational(2**42, 7))
+    assert (
+        fabs(
+            libsbml.readMathMLFromString(
+                SBMLMathMLPrinter().doprint(Rational(1, 2**42))
+            ).getValue()
+            - 1 / 2**42
+        )
+        < 1e-15
     )
