@@ -43,7 +43,7 @@ def sympy_to_sbml_math(sp_expr: sp.Expr) -> libsbml.ASTNode:
 
 
 def sbml_math_to_sympy(
-    sbml_obj: Union[libsbml.SBase, libsbml.ASTNode], **kwargs
+    sbml_obj: libsbml.SBase | libsbml.ASTNode, **kwargs
 ) -> sp.Expr:
     """Convert SBML MathML to sympy expression.
 

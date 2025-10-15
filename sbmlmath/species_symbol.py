@@ -1,6 +1,6 @@
 """SBML MathML related functionality"""
 
-from typing import Literal, Optional
+from typing import Literal
 
 import sympy as sp
 
@@ -43,7 +43,7 @@ class SpeciesSymbol(sp.Dummy):
     def __new__(
         cls,
         *args,
-        representation_type: Optional[Literal["sum", "numericValue"]] = None,
+        representation_type: Literal["sum", "numericValue"] | None = None,
         species_reference: str = None,
         **kwargs,
     ):
