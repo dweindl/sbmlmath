@@ -7,3 +7,5 @@
 
    About <about>
    API reference   <api>
+   Development   <development>
+   Changelog   <changelog>
