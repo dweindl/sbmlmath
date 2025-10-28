@@ -4,7 +4,6 @@ import contextlib
 import operator as operators
 from functools import reduce
 from io import BytesIO
-from typing import Union
 
 import sympy as sp
 from lxml import etree
@@ -202,8 +201,8 @@ class SBMLMathMLParser:
 
     def __init__(
         self,
-        sbml_level: Union[int, str] = _DEFAULT_SBML_LEVEL,
-        sbml_version: Union[int, str] = _DEFAULT_SBML_VERSION,
+        sbml_level: int | str = _DEFAULT_SBML_LEVEL,
+        sbml_version: int | str = _DEFAULT_SBML_VERSION,
         ureg: UnitRegistry = None,
         floats_as_rationals=True,
         ignore_units=False,
