@@ -109,7 +109,7 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
 
     def _print_Number(self, e):
         # only try printing as int if it fits int32
-        if isinstance(e, int) and e < 2**31 and e >= -(2**31):
+        if isinstance(e, int) and _is_sbml_compatible_int(e):
             res = self._print_int(e)
         else:
             res = super()._print_Number(e)
@@ -123,6 +123,10 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             # don't divide by one
             return self._print_int(e.p)
 
+        if not (_is_sbml_compatible_int(e.p) and _is_sbml_compatible_int(e.q)):
+            # avoid int32 under/overflow in libsbml and print as float
+            return self._print_Number(e.evalf())
+
         res = self.dom.createElement("cn")
         res.setAttribute("type", "rational")
         res.appendChild(self.dom.createTextNode(f"{e.p} <sep/> {e.q}"))
@@ -132,7 +136,7 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
         return res
 
     def _print_int(self, e):
-        if e >= 2**31 or e < -(2**31):
+        if not _is_sbml_compatible_int(e):
             # avoid int32 under/overflow in libsbml and print as float
             return self._print_Number(e)
         res = super()._print_int(e)
@@ -192,3 +196,8 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             dom_element.appendChild(self._print(arg))
 
         return dom_element
+
+
+def _is_sbml_compatible_int(value: int) -> bool:
+    """Check if integer is compatible with SBML (fits into signed int32)."""
+    return 2**31 > value >= -(2**31)
