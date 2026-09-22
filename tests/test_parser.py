@@ -30,6 +30,44 @@ def test_mathmlparser_vs_sympify(formula_str):
     assert sym_expr == sp.sympify(formula_str)
 
 
+@pytest.mark.parametrize(
+    ("a", "b"),
+    (
+        (-5, 3),
+        (5, 3),
+        (-5, -3),
+        (5, -3),
+    ),
+)
+def test_mathmlparser_rem_vs_piecewise(a, b):
+    """`<rem/>` and the pre-L3V2 piecewise expansion of `%` are two
+    equivalent encodings of the same operator and must sympify to the
+    same (C/truncated-division) result.
+
+    https://github.com/dweindl/sbmlmath/issues/46
+    """
+    formula = f"{a} % {b}"
+    settings = libsbml.L3ParserSettings()
+
+    settings.setParseModuloL3v2(True)
+    rem_mathml = libsbml.writeMathMLToString(
+        libsbml.parseL3FormulaWithSettings(formula, settings)
+    )
+
+    settings.setParseModuloL3v2(False)
+    piecewise_mathml = libsbml.writeMathMLToString(
+        libsbml.parseL3FormulaWithSettings(formula, settings)
+    )
+
+    parser = SBMLMathMLParser(evaluate=True)
+    rem_result = parser.parse_str(rem_mathml).doit()
+    piecewise_result = parser.parse_str(piecewise_mathml).doit()
+
+    expected = a - b * int(a / b)  # C/truncated-division semantics
+    assert rem_result == expected
+    assert piecewise_result == expected
+
+
 def test_parser_with_name_preprocessor():
     ast_node = libsbml.parseL3Formula("a * b")
     mathml = libsbml.writeMathMLToString(ast_node)
