@@ -53,6 +53,19 @@ def _pow(base, exponent, evaluate: bool = False):
         return base**exponent
 
 
+def _rem(a, b, evaluate: bool = False):
+    # SBML `<rem/>` uses C/truncated-division semantics (sign follows the
+    #  dividend), unlike sympy.Mod (floored, sign follows the divisor).
+    #  This matches the piecewise expansion libSBML uses for `%` on SBML
+    #  levels/versions that don't support `<rem/>` directly, so both
+    #  encodings of the same operator agree.
+    with sp.evaluate(evaluate):
+        return sp.Piecewise(
+            (a - b * sp.ceiling(a / b), sp.Xor(a < 0, b < 0)),
+            (a - b * sp.floor(a / b), True),
+        )
+
+
 mathml_op_sympy_trigonometric = {
     f"{{{mathml_ns}}}sin": sp.sin,
     f"{{{mathml_ns}}}cos": sp.cos,
@@ -123,7 +136,7 @@ mathml_op_sympy = {
     f"{{{mathml_ns}}}factorial": sp.factorial,
     f"{{{mathml_ns}}}ln": sp.log,
     f"{{{mathml_ns}}}not": sp.Not,
-    f"{{{mathml_ns}}}rem": sp.Mod,
+    f"{{{mathml_ns}}}rem": _rem,
     **mathml_op_sympy_trigonometric,
     **mathml_op_sympy_boolean,
 }
