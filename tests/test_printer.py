@@ -1,6 +1,7 @@
 from math import fabs
 
 import libsbml
+import sympy as sp
 from sympy import Rational
 
 from sbmlmath import SBMLMathMLPrinter, SpeciesSymbol
@@ -43,3 +44,22 @@ def test_print_large_rational():
         )
         < 1e-15
     )
+
+
+def test_print_mod():
+    # sympy.Mod has no SBML MathML operator (see #46/#48) -- must be
+    #  expanded into its definition instead of emitting the invalid
+    #  `<mod/>` tag.
+    a, b = sp.symbols("a b")
+    mathml = SBMLMathMLPrinter().doprint(sp.Mod(a, b), with_math=False)
+    assert mathml == (
+        "<apply><minus/><ci>a</ci>"
+        "<apply><times/><ci>b</ci>"
+        "<apply><floor/><apply><divide/><ci>a</ci><ci>b</ci></apply></apply>"
+        "</apply></apply>"
+    )
+
+    ast = libsbml.readMathMLFromString(
+        SBMLMathMLPrinter().doprint(sp.Mod(a, b))
+    )
+    assert libsbml.formulaToL3String(ast) == "a - b * floor(a / b)"

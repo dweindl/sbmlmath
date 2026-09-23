@@ -197,6 +197,15 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
 
         return dom_element
 
+    def _print_Mod(self, e):
+        # SBML MathML has no operator with sympy.Mod's floored-division
+        #  semantics (`<rem/>` is C/truncated-division, see #46/#48), so
+        #  expand it into its definition using operators that do exist.
+        a, b = e.args
+        with sp.evaluate(False):
+            expanded = a - b * sp.floor(a / b)
+        return self._print(expanded)
+
 
 def _is_sbml_compatible_int(value: int) -> bool:
     """Check if integer is compatible with SBML (fits into signed int32)."""
