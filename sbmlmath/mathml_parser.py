@@ -1,13 +1,16 @@
 """SBML mathml to sympy."""
 
+from __future__ import annotations
+
 import contextlib
 import operator as operators
-from functools import reduce
+import sys
+from functools import cache, reduce
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 import sympy as sp
 from lxml import etree
-from pint import Quantity, UnitRegistry
 from sympy import Piecewise
 from sympy.logic.boolalg import (
     Boolean,
@@ -20,15 +23,33 @@ from .cfunction import CFunction
 from .csymbol import CSymbol
 from .species_symbol import SpeciesSymbol
 
+if TYPE_CHECKING:
+    from pint import UnitRegistry
+
 __all__ = ["SBMLMathMLParser"]
 
 
 mathml_ns = "http://www.w3.org/1998/Math/MathML"
-# Create a default unit registry to be used if none is provided to SBMLMathMLParser.__init__.
-#  Depending on the usage pattern, constructing a new UnitRegistry for each SBMLMathMLParser might be rather slow.
-_ureg = UnitRegistry()
-_ureg.Quantity.name = property(fget=lambda s: f"({s})")
-_ureg.Quantity_sympy_ = lambda s: sp.sympify(f"{s.m}*{s.u:~}")
+
+
+@cache
+def _get_default_ureg() -> UnitRegistry:
+    """Get the default unit registry, shared by all parsers.
+
+    Created lazily, because importing pint and creating a registry is slow.
+    """
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    ureg.Quantity.name = property(fget=lambda s: f"({s})")
+    ureg.Quantity_sympy_ = lambda s: sp.sympify(f"{s.m}*{s.u:~}")
+    return ureg
+
+
+def _is_quantity(x) -> bool:
+    """Check whether `x` is a :class:`pint.Quantity`, without importing pint."""
+    pint = sys.modules.get("pint")
+    return pint is not None and isinstance(x, pint.Quantity)
 
 
 # some operator implementations to handle `evaluate`
@@ -51,7 +72,7 @@ def _mul(*args, evaluate: bool = False):
 def _pow(base, exponent, evaluate: bool = False):
     # pint can't raise units to a symbolic power. For a dimensionless base,
     #  the result is dimensionless, so we can drop the units.
-    if isinstance(base, Quantity) and not isinstance(
+    if _is_quantity(base) and not isinstance(
         _strip_dimensionless(exponent), int | float | sp.Number
     ):
         if not base.dimensionless:
@@ -68,7 +89,7 @@ def _pow(base, exponent, evaluate: bool = False):
 
 def _strip_dimensionless(x):
     """Convert a dimensionless quantity to its plain magnitude."""
-    if isinstance(x, Quantity) and x.dimensionless:
+    if _is_quantity(x) and x.dimensionless:
         return x.to("dimensionless").magnitude
     return x
 
@@ -239,14 +260,14 @@ class SBMLMathMLParser:
         self,
         sbml_level: int | str = _DEFAULT_SBML_LEVEL,
         sbml_version: int | str = _DEFAULT_SBML_VERSION,
-        ureg: UnitRegistry = None,
+        ureg: UnitRegistry | None = None,
         floats_as_rationals=True,
         ignore_units=False,
         symbol_kwargs=None,
         evaluate=False,
     ):
         """Constructor"""
-        self.ureg = ureg or _ureg or UnitRegistry()
+        self._ureg = ureg
         self.sbml_core_ns = f"http://www.sbml.org/sbml/level{sbml_level}/version{sbml_version}/core"
         #  TODO {prefix=>url}
         self.sbml_multi_ns = (
@@ -277,6 +298,17 @@ class SBMLMathMLParser:
                 continue
 
             return self._parse_element(element)
+
+    @property
+    def ureg(self) -> UnitRegistry:
+        """The unit registry used for ``sbml:units``."""
+        if self._ureg is None:
+            self._ureg = _get_default_ureg()
+        return self._ureg
+
+    @ureg.setter
+    def ureg(self, ureg: UnitRegistry | None):
+        self._ureg = ureg
 
     def parse_str(self, mathml: str):
         """Parse a string containing MathML.

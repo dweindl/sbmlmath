@@ -1,3 +1,7 @@
+import subprocess
+import sys
+from pathlib import Path
+
 import libsbml
 import sympy as sp
 from sympy import Piecewise
@@ -254,3 +258,26 @@ def test_num2_bool():
     # no "conversion" if piecewise expressions are already boolean!
     expr = sp.Piecewise((sp.true, a < 10), (sp.false, sp.true))
     assert _num2bool(expr) == expr
+
+
+def test_pint_imported_lazily():
+    """pint is only imported once units are encountered."""
+    code = """
+import sys
+from sbmlmath import SBMLMathMLParser
+
+ns = 'xmlns="http://www.w3.org/1998/Math/MathML"'
+sbml_ns = 'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core"'
+parser = SBMLMathMLParser()
+parser.parse_str(f"<math {ns}><cn>2</cn></math>")
+assert "pint" not in sys.modules
+
+parser.parse_str(f'<math {ns} {sbml_ns}><cn sbml:units="mole">2</cn></math>')
+assert "pint" in sys.modules
+"""
+    # run from the repository root to test this checkout of sbmlmath
+    subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code],
+        check=True,
+        cwd=Path(__file__).parents[1],
+    )
