@@ -24,6 +24,8 @@ from .csymbol import CSymbol
 from .species_symbol import SpeciesSymbol
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
+
     from pint import UnitRegistry
 
 __all__ = ["SBMLMathMLParser"]
@@ -134,21 +136,11 @@ mathml_op_sympy_trigonometric = {
     f"{{{mathml_ns}}}arccoth": sp.acoth,
 }
 mathml_op_sympy_boolean = {
-    f"{{{mathml_ns}}}and": lambda *args, **kwargs: sp.And(
-        *map(_num2bool, args), **kwargs
-    ),
-    f"{{{mathml_ns}}}or": lambda *args, **kwargs: sp.Or(
-        *map(_num2bool, args), **kwargs
-    ),
-    f"{{{mathml_ns}}}xor": lambda *args, **kwargs: sp.Xor(
-        *map(_num2bool, args), **kwargs
-    ),
-    f"{{{mathml_ns}}}not": lambda arg, **kwargs: sp.Not(
-        _num2bool(arg), **kwargs
-    ),
-    f"{{{mathml_ns}}}implies": lambda *args, **kwargs: sp.Implies(
-        *map(_num2bool, args), **kwargs
-    ),
+    f"{{{mathml_ns}}}and": sp.And,
+    f"{{{mathml_ns}}}or": sp.Or,
+    f"{{{mathml_ns}}}xor": sp.Xor,
+    f"{{{mathml_ns}}}not": sp.Not,
+    f"{{{mathml_ns}}}implies": sp.Implies,
 }
 
 mathml_op_sympy = {
@@ -280,6 +272,8 @@ class SBMLMathMLParser:
             {} if symbol_kwargs is None else symbol_kwargs.copy()
         )
         self.evaluate = evaluate
+        # bound variables of the <lambda> currently being parsed
+        self._bound_symbols = frozenset()
 
     def parse_file(self, file_like) -> sp.Expr:
         """Parse a file-like object containing MathML.
@@ -381,7 +375,7 @@ class SBMLMathMLParser:
             }:
                 return sym_operands[0]
             if len(operands) == 1 and stripped_tag in {"and", "or", "xor"}:
-                return _num2bool(sym_operands[0])
+                return self._num2bool(sym_operands[0])
 
             if (
                 stripped_tag in ("gt", "lt", "leq", "geq", "eq")
@@ -411,7 +405,9 @@ class SBMLMathMLParser:
 
         # explicit boolean->{int,float} conversion for non-boolean functions,
         #  since sympy does not do that automatically
-        if operator.tag not in mathml_op_sympy_boolean:
+        if operator.tag in mathml_op_sympy_boolean:
+            sym_operands = list(map(self._num2bool, sym_operands))
+        else:
             sym_operands = list(map(_bool2num, sym_operands))
 
         with contextlib.suppress(KeyError):
@@ -583,7 +579,7 @@ class SBMLMathMLParser:
                 # Only Boolean conditions are supported
                 #  -> convert
                 # this won't round-trip
-                cond = _num2bool(cond)
+                cond = self._num2bool(cond)
                 expr_cond_pairs.append(
                     (self._parse_element(e[0]), cond),
                 )
@@ -609,7 +605,14 @@ class SBMLMathMLParser:
             assert len(e) == 1
             args.append(self._parse_element(e[0]))
 
-        rhs = self._parse_element(element[-1])
+        # Bound variables may be Boolean, depending on the call site.
+        #  Therefore, they must not be converted in Boolean contexts.
+        outer_bound_symbols = self._bound_symbols
+        self._bound_symbols = outer_bound_symbols | set(args)
+        try:
+            rhs = self._parse_element(element[-1])
+        finally:
+            self._bound_symbols = outer_bound_symbols
         return sp.Lambda(tuple(args), rhs)
 
     def handle_degree(self, element: etree._Element) -> sp.Expr:
@@ -628,6 +631,10 @@ class SBMLMathMLParser:
             definition_url=element.attrib["definitionURL"],
             **self.symbol_kwargs,
         )
+
+    def _num2bool(self, x: sp.Basic) -> sp.Basic:
+        """Convert operands in Boolean contexts to Boolean expressions."""
+        return _num2bool(x, boolean_symbols=self._bound_symbols)
 
     def preprocess_symbol_name(
         self, name: str, element: etree._Element = None
@@ -665,10 +672,14 @@ def _bool2num(x: sp.Basic) -> sp.Basic:
     return x
 
 
-def _num2bool(x: sp.Basic) -> sp.Basic:
+def _num2bool(
+    x: sp.Basic, boolean_symbols: Collection[sp.Symbol] = ()
+) -> sp.Basic:
     """Convert non-Booleans to Boolean expressions.
 
     ``expr -> Ne(expr, 0)``
+
+    Symbols are treated as numeric, except for those in `boolean_symbols`.
 
     Piecewise expressions are converted to equivalent Boolean expressions:
 
@@ -683,9 +694,13 @@ def _num2bool(x: sp.Basic) -> sp.Basic:
         terms = []
         previous_conds = []
         for expr, cond in x.args:
-            terms.append(sp.And(*previous_conds, cond, _num2bool(expr)))
+            terms.append(
+                sp.And(*previous_conds, cond, _num2bool(expr, boolean_symbols))
+            )
             previous_conds.append(sp.Not(cond))
         return sp.Or(*terms)
+    if isinstance(x, sp.Symbol):
+        return x if x in boolean_symbols else sp.Ne(x, 0)
     if not isinstance(x, Boolean):
         return sp.Ne(x, 0)
     return x

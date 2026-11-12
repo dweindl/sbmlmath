@@ -150,6 +150,63 @@ def test_logical_operators_numeric_operands(evaluate):
 
 
 @pytest.mark.parametrize("evaluate", (True, False))
+def test_symbols_in_boolean_context(evaluate):
+    """Symbols in Boolean contexts are numeric, unless bound by a lambda.
+
+    https://github.com/dweindl/sbmlmath/issues/57
+    """
+    x, y, z = sp.symbols("x y z")
+    parser = SBMLMathMLParser(evaluate=evaluate, ignore_units=True)
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    for formula, expected in (
+        ("x && (y > 2)", sp.Ne(x, 0) & (y > 2)),
+        ("not(x)", sp.Eq(x, 0)),
+        ("and(x)", sp.Ne(x, 0)),
+        ("implies(x, y)", sp.Implies(sp.Ne(x, 0), sp.Ne(y, 0))),
+        ("piecewise(1, x, 0)", sp.Piecewise((1, sp.Ne(x, 0)), (0, True))),
+        (
+            "and(piecewise(y, y == 2, 0), z > 0)",
+            sp.Eq(y, 2) & sp.Ne(y, 0) & (z > 0),
+        ),
+    ):
+        expr = parse(formula)
+        assert expr.simplify() == expected.simplify()
+        # printer round trip
+        assert parser.parse_str(SBMLMathMLPrinter().doprint(expr)) == expr
+
+    # numeric values can be substituted
+    expr = parse("x && (y > 2)")
+    assert expr.subs({x: 2, y: 3}) == sp.true
+    assert expr.subs({x: 0, y: 3}) == sp.false
+    expr = parse("piecewise(1, x, 0)")
+    assert expr.subs(x, 2) == 1
+    assert expr.subs(x, 0) == 0
+
+    # csymbols are numeric
+    expr = parse("time && x")
+    (t,) = expr.atoms(CSymbol)
+    assert expr == sp.Ne(t, 0) & sp.Ne(x, 0)
+
+    # bound variables may be Boolean, depending on the call site
+    #  (SBML semantic test suite case 01486)
+    my_not = parse("lambda(x, not(x))")
+    assert my_not == sp.Lambda(x, sp.Not(x))
+    assert my_not(sp.false) == sp.true
+    assert my_not(sp.true) == sp.false
+    # ... but other symbols in the lambda body are numeric
+    expr = parse("lambda(x, x && y)")
+    assert expr == sp.Lambda(x, x & sp.Ne(y, 0))
+    # bound variables are reset after parsing the lambda
+    parse("lambda(x, not(x))")
+    assert parse("not(x)").simplify() == sp.Eq(x, 0)
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
 def test_logical_operators_piecewise_operands(evaluate):
     """Piecewise operands of logical operators are converted to Booleans.
 
