@@ -254,6 +254,8 @@ def test_num2_bool():
     assert _num2bool(0.0) == sp.false
     assert _num2bool(-0.0) == sp.false
     assert _num2bool(a + 1) == sp.Ne(a + 1, 0)
+    assert _num2bool(a) == sp.Ne(a, 0)
+    assert _num2bool(a, boolean_symbols={a}) is a
 
     # piecewise -> boolean expression
     expr = sp.Piecewise((sp.true, a < 10), (sp.false, sp.true))
