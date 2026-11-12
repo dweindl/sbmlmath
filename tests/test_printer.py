@@ -4,7 +4,7 @@ import libsbml
 import sympy as sp
 from sympy import Rational
 
-from sbmlmath import SBMLMathMLPrinter, SpeciesSymbol
+from sbmlmath import SBMLMathMLParser, SBMLMathMLPrinter, SpeciesSymbol
 
 
 def test_species_symbol_repr_type():
@@ -63,3 +63,24 @@ def test_print_mod():
         SBMLMathMLPrinter().doprint(sp.Mod(a, b))
     )
     assert libsbml.formulaToL3String(ast) == "a - b * floor(a / b)"
+
+
+def test_print_ite():
+    # SBML MathML has no if-then-else operator -- print as <piecewise>
+    x, y = sp.symbols("x y")
+    ite = sp.ITE(x > 1, y > 2, sp.ITE(x < 0, y < 1, False))
+    mathml = SBMLMathMLPrinter().doprint(ite)
+    assert "<ite" not in mathml
+
+    ast = libsbml.readMathMLFromString(
+        SBMLMathMLPrinter(literals_dimensionless=False).doprint(ite)
+    )
+    assert (
+        libsbml.formulaToL3String(ast)
+        == "piecewise(y > 2, x > 1, y < 1, x < 0, false)"
+    )
+
+    parser = SBMLMathMLParser(ignore_units=True)
+    assert parser.parse_str(mathml) == sp.Piecewise(
+        (y > 2, x > 1), (y < 1, x < 0), (False, True)
+    )
