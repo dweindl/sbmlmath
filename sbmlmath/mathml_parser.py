@@ -7,7 +7,7 @@ from io import BytesIO
 
 import sympy as sp
 from lxml import etree
-from pint import UnitRegistry
+from pint import Quantity, UnitRegistry
 from sympy import Piecewise
 from sympy.logic.boolalg import (
     Boolean,
@@ -49,8 +49,28 @@ def _mul(*args, evaluate: bool = False):
 
 
 def _pow(base, exponent, evaluate: bool = False):
+    # pint can't raise units to a symbolic power. For a dimensionless base,
+    #  the result is dimensionless, so we can drop the units.
+    if isinstance(base, Quantity) and not isinstance(
+        _strip_dimensionless(exponent), int | float | sp.Number
+    ):
+        if not base.dimensionless:
+            raise ValueError(
+                f"Cannot raise `{base}` to the non-numeric power "
+                f"`{exponent}`: the units of the result are undefined."
+            )
+        base = _strip_dimensionless(base)
+        exponent = _strip_dimensionless(exponent)
+
     with sp.evaluate(evaluate):
         return base**exponent
+
+
+def _strip_dimensionless(x):
+    """Convert a dimensionless quantity to its plain magnitude."""
+    if isinstance(x, Quantity) and x.dimensionless:
+        return x.to("dimensionless").magnitude
+    return x
 
 
 def _rem(a, b, evaluate: bool = False):

@@ -161,6 +161,53 @@ def test_parser_with_name_preprocessor():
     assert sym_expr == sp.sympify(sp.sympify("_a * _b"))
 
 
+@pytest.mark.parametrize(
+    "expected",
+    [
+        sp.Integer(10) ** sp.Symbol("x"),
+        sp.Float(2.5) ** sp.Symbol("x"),
+        sp.Integer(10) ** (2 * sp.Symbol("x")),
+        (2 * sp.Symbol("x")) ** sp.Symbol("y"),
+    ],
+)
+def test_power_dimensionless_base_symbolic_exponent(expected):
+    mathml = SBMLMathMLPrinter(literals_dimensionless=True).doprint(expected)
+    assert 'sbml:units="dimensionless"' in mathml
+
+    result = SBMLMathMLParser(floats_as_rationals=False).parse_str(mathml)
+
+    assert result == expected
+    # no pint.Quantity must remain in the expression tree
+    assert all(
+        isinstance(node, sp.Basic) for node in sp.preorder_traversal(result)
+    )
+
+
+def test_power_scaled_dimensionless_base_symbolic_exponent():
+    mathml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<math xmlns="http://www.w3.org/1998/Math/MathML" '
+        'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">'
+        '<apply><power/><cn sbml:units="percent">10</cn><ci>x</ci></apply>'
+        "</math>"
+    )
+    result = SBMLMathMLParser().parse_str(mathml)
+    assert sp.simplify(result - sp.Rational(1, 10) ** sp.Symbol("x")) == 0
+
+
+def test_power_base_with_units_symbolic_exponent():
+    mathml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<math xmlns="http://www.w3.org/1998/Math/MathML" '
+        'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">'
+        '<apply><power/><cn sbml:units="mole">10</cn><ci>x</ci></apply>'
+        "</math>"
+    )
+    with pytest.raises(ValueError, match="Failed parsing") as exc_info:
+        SBMLMathMLParser().parse_str(mathml)
+    assert "units of the result are undefined" in str(exc_info.value.__cause__)
+
+
 def test_parser_with_custom_assumptions():
     ast_node = libsbml.parseL3Formula("a * b")
     mathml = libsbml.writeMathMLToString(ast_node)

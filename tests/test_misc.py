@@ -24,6 +24,23 @@ def test_set_math():
     assert expr == sbml_math_to_sympy(ia, ignore_units=True)
 
 
+def test_set_math_power_symbolic_exponent():
+    """`set_math` output with dimensionless literals can be read back."""
+    doc = libsbml.SBMLDocument(3, 2)
+    model = doc.createModel()
+    ia = model.createInitialAssignment()
+    ia.setSymbol("y")
+    expr = sp.Integer(10) ** sp.Symbol("x")
+
+    set_math(ia, expr)
+    assert "dimensionless" in libsbml.formulaToL3String(ia.getMath())
+
+    result = sbml_math_to_sympy(ia)
+    assert result == expr
+    assert isinstance(result, sp.Pow)
+    assert isinstance(result.base, sp.Integer)
+
+
 def test_large_mathml():
     """
     lxml.etree.iterparse simply truncates long input (>2**15 chars);
