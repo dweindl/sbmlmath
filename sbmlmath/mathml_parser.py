@@ -93,16 +93,21 @@ mathml_op_sympy_trigonometric = {
     f"{{{mathml_ns}}}arccoth": sp.acoth,
 }
 mathml_op_sympy_boolean = {
-    f"{{{mathml_ns}}}and": lambda *args, **kwargs: sp.And(*args, **kwargs)
-    if kwargs.get("evaluate", False)
-    else sp.And(*map(_num2bool, args), **kwargs),
-    f"{{{mathml_ns}}}or": lambda *args, **kwargs: sp.Or(*args, **kwargs)
-    if kwargs.get("evaluate", False)
-    else sp.Or(*map(_num2bool, args), **kwargs),
-    f"{{{mathml_ns}}}xor": lambda *args, **kwargs: sp.Xor(*args, **kwargs)
-    if kwargs.get("evaluate", False)
-    else sp.Xor(*map(_num2bool, args), **kwargs),
-    f"{{{mathml_ns}}}implies": sp.Implies,
+    f"{{{mathml_ns}}}and": lambda *args, **kwargs: sp.And(
+        *map(_num2bool, args), **kwargs
+    ),
+    f"{{{mathml_ns}}}or": lambda *args, **kwargs: sp.Or(
+        *map(_num2bool, args), **kwargs
+    ),
+    f"{{{mathml_ns}}}xor": lambda *args, **kwargs: sp.Xor(
+        *map(_num2bool, args), **kwargs
+    ),
+    f"{{{mathml_ns}}}not": lambda arg, **kwargs: sp.Not(
+        _num2bool(arg), **kwargs
+    ),
+    f"{{{mathml_ns}}}implies": lambda *args, **kwargs: sp.Implies(
+        *map(_num2bool, args), **kwargs
+    ),
 }
 
 mathml_op_sympy = {
@@ -135,7 +140,6 @@ mathml_op_sympy = {
     f"{{{mathml_ns}}}floor": sp.floor,
     f"{{{mathml_ns}}}factorial": sp.factorial,
     f"{{{mathml_ns}}}ln": sp.log,
-    f"{{{mathml_ns}}}not": sp.Not,
     f"{{{mathml_ns}}}rem": _rem,
     **mathml_op_sympy_trigonometric,
     **mathml_op_sympy_boolean,
@@ -153,7 +157,6 @@ unary = {
     f"{{{mathml_ns}}}floor",
     f"{{{mathml_ns}}}factorial",
     f"{{{mathml_ns}}}ln",
-    f"{{{mathml_ns}}}not",
     f"{{{mathml_ns}}}min",
     f"{{{mathml_ns}}}max",
     f"{{{mathml_ns}}}root",
@@ -321,13 +324,12 @@ class SBMLMathMLParser:
             if len(operands) == 1 and stripped_tag in {
                 "plus",
                 "times",
-                "and",
-                "or",
-                "xor",
                 "min",
                 "max",
             }:
                 return sym_operands[0]
+            if len(operands) == 1 and stripped_tag in {"and", "or", "xor"}:
+                return _num2bool(sym_operands[0])
 
             if (
                 stripped_tag in ("gt", "lt", "leq", "geq", "eq")
@@ -616,7 +618,7 @@ def _num2bool(x: sp.Basic) -> sp.Basic:
 
     Convert non-Boolean expressions to Piecewise or Boolean expressions:
 
-    ``expr -> Piecewise((True, expr != 0), (False, True))``
+    ``expr -> Ne(expr, 0)``
 
     Return anything else as is.
     """
@@ -626,5 +628,5 @@ def _num2bool(x: sp.Basic) -> sp.Basic:
             return Piecewise(
                 *((_num2bool(expr), cond) for expr, cond in x.args)
             )
-        return Piecewise((True, x != 0), (False, True))
+        return sp.Ne(x, 0)
     return x

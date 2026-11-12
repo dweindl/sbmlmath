@@ -68,6 +68,87 @@ def test_mathmlparser_rem_vs_piecewise(a, b):
     assert piecewise_result == expected
 
 
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_not(evaluate):
+    """`<not/>` yields Boolean expressions, also for numeric operands.
+
+    https://github.com/dweindl/sbmlmath/issues/51
+    """
+    x = sp.Symbol("x")
+    parser = SBMLMathMLParser(evaluate=evaluate)
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    # negated relational
+    expr = parse("!(x <= 3)")
+    assert isinstance(expr, sp.logic.boolalg.Boolean)
+    # used to fail with "Illegal operator Piecewise"
+    expr.to_nnf()
+    if evaluate:
+        assert expr == (x > 3)
+    else:
+        assert expr == sp.Not(x <= 3, evaluate=False)
+
+    # printer round trip
+    expr = sp.Piecewise((1, sp.Not(x <= 3, evaluate=evaluate)), (0, True))
+    assert (
+        SBMLMathMLParser(evaluate=evaluate, ignore_units=True).parse_str(
+            SBMLMathMLPrinter().doprint(expr)
+        )
+        == expr
+    )
+
+    # in a numeric context, it is converted to a number
+    expr = parse("!(x <= 3) + 1")
+    assert expr.subs(x, 4) == 2
+    assert expr.subs(x, 3) == 1
+
+    # numeric operands: 0 is false, everything else is true
+    #  (SBML L3V2 Section 3.4.4)
+    assert parse("!0").simplify() == sp.true
+    assert parse("!5").simplify() == sp.false
+    assert parse("!-0.5").simplify() == sp.false
+    expr = parse("!(x + 1)")
+    assert isinstance(expr, sp.logic.boolalg.Boolean)
+    assert expr.subs(x, -1) == sp.true
+    assert expr.subs(x, 0) == sp.false
+    assert expr.subs(x, 1) == sp.false
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_logical_operators_numeric_operands(evaluate):
+    """Numeric operands of `and`/`or`/`xor`/`implies` are converted to
+    Booleans: 0 is false, everything else is true (SBML L3V2 Section 3.4.4).
+    """
+    x, y = sp.symbols("x y")
+    parser = SBMLMathMLParser(evaluate=evaluate)
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    assert parse("5 && (y > 2)") == (y > 2)
+    assert parse("0 && (y > 2)") == sp.false
+    assert parse("0 || (y > 2)") == (y > 2)
+    assert parse("xor(5, 3)") == sp.false
+    assert parse("implies(0, y > 2)").simplify() == sp.true
+    assert parse("and(5)") == sp.true
+    assert parse("or(0)") == sp.false
+
+    for formula, expected in (
+        ("(x + 1) && (y > 2)", sp.And(sp.Ne(x + 1, 0), y > 2)),
+        ("(x + 1) || (y > 2)", sp.Or(sp.Ne(x + 1, 0), y > 2)),
+        ("xor(x + 1, y > 2)", sp.Xor(sp.Ne(x + 1, 0), y > 2)),
+        ("or(x + 1)", sp.Ne(x + 1, 0)),
+    ):
+        # doit: unevaluated `x + 1` has a different argument order
+        assert parse(formula).doit() == expected
+
+
 def test_parser_with_name_preprocessor():
     ast_node = libsbml.parseL3Formula("a * b")
     mathml = libsbml.writeMathMLToString(ast_node)
