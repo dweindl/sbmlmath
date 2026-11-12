@@ -255,9 +255,15 @@ def test_num2_bool():
     assert _num2bool(-0.0) == sp.false
     assert _num2bool(a + 1) == sp.Ne(a + 1, 0)
 
-    # no "conversion" if piecewise expressions are already boolean!
+    # piecewise -> boolean expression
     expr = sp.Piecewise((sp.true, a < 10), (sp.false, sp.true))
-    assert _num2bool(expr) == expr
+    assert _num2bool(expr) == (a < 10)
+    expr = sp.Piecewise((a + 1, a < 10), (b - 1, a < 20), (a > b, sp.true))
+    assert _num2bool(expr) == sp.Or(
+        (a < 10) & sp.Ne(a + 1, 0),
+        (a >= 10) & (a < 20) & sp.Ne(b - 1, 0),
+        (a >= 10) & (a >= 20) & (a > b),
+    )
 
 
 def test_pint_imported_lazily():
