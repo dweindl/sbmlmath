@@ -149,6 +149,65 @@ def test_logical_operators_numeric_operands(evaluate):
         assert parse(formula).doit() == expected
 
 
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_logical_operators_piecewise_operands(evaluate):
+    """Piecewise operands of logical operators are converted to Booleans.
+
+    https://github.com/dweindl/sbmlmath/issues/53
+    """
+    x, y, z = sp.symbols("x y z")
+    parser = SBMLMathMLParser(evaluate=evaluate, ignore_units=True)
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    for formula, expected in (
+        ("and(piecewise(1, x > 1, 0), y > 2)", (x > 1) & (y > 2)),
+        ("not(piecewise(1, x > 1, 0))", x <= 1),
+        (
+            "or(piecewise(x + 1, x > 1, y - 1), z > 0)",
+            ((x > 1) & sp.Ne(x + 1, 0))
+            | ((x <= 1) & sp.Ne(y - 1, 0))
+            | (z > 0),
+        ),
+        # Boolean-valued pieces
+        (
+            "and(piecewise(x > 2, x > 1, y > 3), z > 0)",
+            (((x > 1) & (x > 2)) | ((x <= 1) & (y > 3))) & (z > 0),
+        ),
+        # piecewise nested in a numeric expression: always non-zero
+        ("and(piecewise(1, x > 1, 0) + 1, y > 2)", y > 2),
+    ):
+        expr = parse(formula)
+        # doit: unevaluated `x + 1` has a different argument order
+        assert expr.doit() == expected
+        # printer round trip
+        assert (
+            parser.parse_str(SBMLMathMLPrinter().doprint(expr)).doit()
+            == expected
+        )
+
+    # ITE as piecewise condition is printed as <piecewise> and parsed into
+    #  an equivalent And/Or expression
+    expr = sp.Piecewise(
+        (1, sp.ITE(x > 1, y > 2, sp.ITE(x < 0, y < 1, False))), (0, True)
+    )
+    parsed = parser.parse_str(SBMLMathMLPrinter().doprint(expr))
+    assert not parsed.has(sp.ITE)
+    for x_val in (-1, 0.5, 2):
+        for y_val in (0, 1.5, 3):
+            subs = {x: x_val, y: y_val}
+            assert parsed.subs(subs) == expr.subs(subs)
+
+    # overlapping conditions: the first matching piece applies
+    expr = parse("or(piecewise(0, x > 0, 1, x > -1, 0), z > 0)")
+    assert expr.subs({x: 0.5, z: -1}) == sp.false
+    assert expr.subs({x: -0.5, z: -1}) == sp.true
+    assert expr.subs({x: -1.5, z: -1}) == sp.false
+
+
 def test_parser_with_name_preprocessor():
     ast_node = libsbml.parseL3Formula("a * b")
     mathml = libsbml.writeMathMLToString(ast_node)

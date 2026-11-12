@@ -668,17 +668,24 @@ def _bool2num(x: sp.Basic) -> sp.Basic:
 def _num2bool(x: sp.Basic) -> sp.Basic:
     """Convert non-Booleans to Boolean expressions.
 
-    Convert non-Boolean expressions to Piecewise or Boolean expressions:
-
     ``expr -> Ne(expr, 0)``
+
+    Piecewise expressions are converted to equivalent Boolean expressions:
+
+    ``Piecewise((v1, c1), (v2, c2), ...)
+    -> (c1 & v1) | (~c1 & c2 & v2) | ...``
+
+    where the values ``v_i`` are converted recursively.
 
     Return anything else as is.
     """
+    if isinstance(x, Piecewise):
+        terms = []
+        previous_conds = []
+        for expr, cond in x.args:
+            terms.append(sp.And(*previous_conds, cond, _num2bool(expr)))
+            previous_conds.append(sp.Not(cond))
+        return sp.Or(*terms)
     if not isinstance(x, Boolean):
-        if isinstance(x, Piecewise):
-            # apply recursively to the expressiosn
-            return Piecewise(
-                *((_num2bool(expr), cond) for expr, cond in x.args)
-            )
         return sp.Ne(x, 0)
     return x
