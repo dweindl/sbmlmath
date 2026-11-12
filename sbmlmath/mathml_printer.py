@@ -197,6 +197,22 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
 
         return dom_element
 
+    def _print_ITE(self, e):
+        # SBML MathML has no if-then-else operator, so print as
+        #  <piecewise>. Nested ITEs in the else-branch become additional
+        #  pieces.
+        root = self.dom.createElement("piecewise")
+        while isinstance(e, sp.ITE):
+            cond, then, e = e.args
+            piece = self.dom.createElement("piece")
+            piece.appendChild(self._print(then))
+            piece.appendChild(self._print(cond))
+            root.appendChild(piece)
+        otherwise = self.dom.createElement("otherwise")
+        otherwise.appendChild(self._print(e))
+        root.appendChild(otherwise)
+        return root
+
     def _print_Mod(self, e):
         # SBML MathML has no operator with sympy.Mod's floored-division
         #  semantics (`<rem/>` is C/truncated-division, see #46/#48), so
