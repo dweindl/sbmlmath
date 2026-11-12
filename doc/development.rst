@@ -20,12 +20,13 @@ project's coding standards and includes appropriate tests.
 Development setup
 -----------------
 
-We use `pre-commit <https://pre-commit.com/>`_ to run linters and formatters on
-the codebase. To enable pre-commit hooks in your development environment, run:
+Install the package in editable mode with the test dependencies
+and enable the `pre-commit <https://pre-commit.com/>`_ hooks
+(linters and formatters):
 
 .. code-block:: bash
 
-    pip install pre-commit
+    pip install -e .[test]
     pre-commit install
 
 
@@ -33,13 +34,32 @@ Running tests
 -------------
 
 We use `pytest <https://docs.pytest.org/en/stable/>`_ for testing.
-
+This includes the doctests in ``sbmlmath/``.
 To run the test suite, execute the following command in the project root
 directory:
 
 .. code-block:: bash
 
     pytest
+
+The tests based on the
+`SBML Test Suite <https://github.com/sbmlteam/sbml-test-suite/>`_
+are skipped unless ``SBML_TEST_SUITE_ROOT`` points to a checkout of it:
+
+.. code-block:: bash
+
+    git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+    SBML_TEST_SUITE_ROOT=$(pwd)/sbml-test-suite pytest
+
+
+Building the documentation
+--------------------------
+
+.. code-block:: bash
+
+    pip install -r doc/rtd_requirements.txt
+    cd doc && make html
+
 
 Release process
 ---------------
@@ -48,9 +68,11 @@ Releases are managed via GitHub releases.
 
 To create a new release:
 
-1. Go to the "Releases" section of the GitHub repository.
-2. Click on "Draft a new release".
-3. Fill in the tag version, release title, and description.
+1. Ensure that the tests on ``main`` pass
+   and that ``CITATION.cff`` is up to date.
+2. Go to the "Releases" section of the GitHub repository.
+3. Click on "Draft a new release".
+4. Fill in the tag version, release title, and description.
 
    Version & tag: We follow `Semantic Versioning <https://semver.org/>`_.
    The tag should be in the format ``vX.Y.Z`` (e.g., ``v1.0.0``).
@@ -58,10 +80,15 @@ To create a new release:
    The package version will be automatically inferred from the tag
    via `setuptools_scm <https://setuptools-scm.readthedocs.io/en/latest/>`__.
 
-   Description: Include a summary of changes, new features, bug fixes,
-   and any other relevant information.
+   Description: Use "Generate release notes" and edit as needed.
+   The release notes serve as the changelog.
 
-4. Publish the release.
+5. Publish the release.
 
    A GitHub Action workflow will automatically build and upload the package to
    PyPI. Ensure that the action completes successfully.
+   Zenodo archives the release automatically.
+
+6. Merge the version update pull request that the conda-forge bot opens at
+   https://github.com/conda-forge/sbmlmath-feedstock.
+   Update the recipe if the dependencies have changed.
