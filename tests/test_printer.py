@@ -5,6 +5,8 @@ import sympy as sp
 from sympy import Rational
 
 from sbmlmath import SBMLMathMLParser, SBMLMathMLPrinter, SpeciesSymbol
+from sbmlmath.cfunction import delay
+from sbmlmath.csymbol import TimeSymbol
 
 
 def test_species_symbol_repr_type():
@@ -84,3 +86,27 @@ def test_print_ite():
     assert parser.parse_str(mathml) == sp.Piecewise(
         (y > 2, x > 1), (y < 1, x < 0), (False, True)
     )
+
+
+def test_print_pretty():
+    x, y = sp.symbols("x y")
+    expr = sp.Piecewise(
+        (x + 1, x > y),
+        (delay(sp.exp(y), 2) * TimeSymbol("t"), True),
+    )
+    printer = SBMLMathMLPrinter()
+    compact = printer.doprint(expr)
+    pretty = printer.doprint(expr, pretty=True)
+    assert pretty != compact
+    assert "\n      <apply>" in pretty
+    assert "<ci>x</ci>" in pretty
+
+    parser = SBMLMathMLParser()
+    assert parser.parse_str(pretty) == parser.parse_str(compact) == expr
+    assert libsbml.formulaToL3String(
+        libsbml.readMathMLFromString(pretty)
+    ) == libsbml.formulaToL3String(libsbml.readMathMLFromString(compact))
+
+    pretty_body = printer.doprint(expr, with_math=False, pretty=True)
+    assert pretty_body.startswith("<piecewise>\n  <piece>")
+    assert pretty_body.endswith("</piecewise>")
