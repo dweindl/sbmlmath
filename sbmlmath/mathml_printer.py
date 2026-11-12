@@ -1,5 +1,6 @@
 """Convenience functions for libsbml core"""
 
+import textwrap
 import warnings
 from numbers import Number
 
@@ -73,25 +74,51 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             ci.setAttribute("multi:speciesReference", sym.species_reference)
         return ci
 
-    def doprint(self, expr, with_prolog=True, with_math=True) -> str:
+    def doprint(
+        self, expr, with_prolog=True, with_math=True, pretty=False
+    ) -> str:
         """Convert SymPy expression to MathML string.
 
         :param expr: The SymPy expression to be converted.
         :param with_prolog: Whether to include the XML prolog.
         :param with_math: Whether to include the <math> tags.
+        :param pretty: Whether to add line breaks and indentation.
 
         >>> SBMLMathMLPrinter().doprint(sp.sympify("3 * a"))
         '<?xml version="1.0" encoding="UTF-8"?>\\n<math xmlns="http://www.w3.org/1998/Math/MathML" xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">\\n<apply><times/><cn type="integer" sbml:units="dimensionless">3</cn><ci>a</ci></apply></math>'
 
         >>> SBMLMathMLPrinter().doprint(sp.sympify("cbrt(3)"), with_math=False, with_prolog=False)
         '<apply><root/><degree><cn>3</cn></degree><cn type="integer" sbml:units="dimensionless">3</cn></apply>'
+
+        >>> print(SBMLMathMLPrinter().doprint(sp.sympify("a + b"), pretty=True))
+        <?xml version="1.0" encoding="UTF-8"?>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci>a</ci>
+            <ci>b</ci>
+          </apply>
+        </math>
         """
         if isinstance(expr, float):
             expr = sp.Float(expr)
         try:
-            mathml = super().doprint(expr)
+            if pretty:
+                mathml = (
+                    self._print(expr)
+                    .toprettyxml(indent="  ")
+                    .encode("ascii", "xmlcharrefreplace")
+                    .decode()
+                )
+            else:
+                mathml = super().doprint(expr)
         except Exception as e:
             raise ValueError(f"MathML printing failed for {expr}") from e
+
+        if pretty:
+            mathml = mathml.rstrip("\n")
+            if with_math:
+                mathml = textwrap.indent(mathml, "  ") + "\n"
 
         if not with_math:
             return mathml
