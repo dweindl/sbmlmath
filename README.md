@@ -57,5 +57,5 @@ conda install conda-forge::sbmlmath
 
 The latest development version from GitHub:
 ```bash
-pip install git+https://github.com/dweindl/sbmlmath.git#egg=sbmlmath
+pip install git+https://github.com/dweindl/sbmlmath.git
 ```
