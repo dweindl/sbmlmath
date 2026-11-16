@@ -81,16 +81,24 @@ def test_species_symbol_operations():
     mathml_act = SBMLMathMLPrinter().doprint(sym_expr)
 
     # not an exact match, but close enough, for now
-    #  TODO - some term re-ordering occurs
     #  TODO - integer / double handling is not happening
-    assert mathml_act == (
+    # the term order depends on the sympy version
+    power = (
+        "<apply><power/>"
+        '<ci multi:speciesReference="ref_to_A">A</ci>'
+        '<cn sbml:units="dimensionless">2.0</cn></apply>'
+    )
+    times = (
+        '<apply><times/><cn sbml:units="dimensionless">2.0</cn>'
+        '<ci multi:representationType="sum">A</ci></apply>'
+    )
+    header = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<math xmlns="http://www.w3.org/1998/Math/MathML" '
         'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core" '
         'xmlns:multi="http://www.sbml.org/sbml/level3/version1/multi/version1">\n'
-        "<apply><plus/><apply><power/>"
-        '<ci multi:speciesReference="ref_to_A">A</ci>'
-        '<cn sbml:units="dimensionless">2.0</cn></apply>'
-        '<apply><times/><cn sbml:units="dimensionless">2.0</cn>'
-        '<ci multi:representationType="sum">A</ci></apply></apply></math>'
+    )
+    assert mathml_act in (
+        f"{header}<apply><plus/>{power}{times}</apply></math>",
+        f"{header}<apply><plus/>{times}{power}</apply></math>",
     )
