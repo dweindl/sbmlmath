@@ -131,10 +131,12 @@ def test_logical_operators_numeric_operands(evaluate):
             libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
         )
 
-    assert parse("5 && (y > 2)") == (y > 2)
-    assert parse("0 && (y > 2)") == sp.false
-    assert parse("0 || (y > 2)") == (y > 2)
-    assert parse("xor(5, 3)") == sp.false
+    # doit: with `evaluate=False`, sympy>=1.15 keeps Boolean constants
+    #  in And/Or/Xor
+    assert parse("5 && (y > 2)").doit() == (y > 2)
+    assert parse("0 && (y > 2)").doit() == sp.false
+    assert parse("0 || (y > 2)").doit() == (y > 2)
+    assert parse("xor(5, 3)").doit() == sp.false
     assert parse("implies(0, y > 2)").simplify() == sp.true
     assert parse("and(5)") == sp.true
     assert parse("or(0)") == sp.false
