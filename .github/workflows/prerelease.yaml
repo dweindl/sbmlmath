@@ -1,0 +1,63 @@
+name: Prerelease dependencies
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * 1'
+  push:
+    paths:
+      - .github/workflows/prerelease.yaml
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        deps: ["pre", "sympy-master"]
+
+    name: test (${{ matrix.deps }})
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.15"
+
+    - name: Cache / restore SBML test suite
+      id: cache-sbml-test-suite
+      uses: actions/cache@v6
+      with:
+        path: sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite
+
+    - name: Download SBML test suite
+      if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
+      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+
+    - name: Install prerelease dependencies
+      if: matrix.deps == 'pre'
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install --upgrade --pre .[test]
+
+    - name: Install sympy master
+      if: matrix.deps == 'sympy-master'
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install .[test]
+        python -m pip install --upgrade "sympy @ git+https://github.com/sympy/sympy@master"
+
+    - name: Show installed versions
+      run: python -m pip list
+
+    - name: Unit tests
+      env:
+        SBML_TEST_SUITE_ROOT: "${{ github.workspace }}/sbml-test-suite/"
+      run: >
+        pytest -vv
+        -W error::sympy.utilities.exceptions.SymPyDeprecationWarning
