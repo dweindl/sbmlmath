@@ -192,7 +192,8 @@ def test_symbols_in_boolean_context(evaluate):
     # csymbols are numeric
     expr = parse("time && x")
     (t,) = expr.atoms(CSymbol)
-    assert expr == sp.Ne(t, 0) & sp.Ne(x, 0)
+    # doit: unevaluated And keeps the argument order (sympy>=1.15)
+    assert expr.doit() == sp.Ne(t, 0) & sp.Ne(x, 0)
 
     # bound variables may be Boolean, depending on the call site
     #  (SBML semantic test suite case 01486)
