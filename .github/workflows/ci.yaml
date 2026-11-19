@@ -31,16 +31,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-
 
+    - name: Get SBML test suite revision
+      id: sbml-test-suite-rev
+      shell: bash
+      run: echo "sha=$(git ls-remote https://github.com/sbmlteam/sbml-test-suite HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+
     - name: Cache / restore SBML test suite
       id: cache-sbml-test-suite
       uses: actions/cache@v6
       with:
         path: sbml-test-suite
-        key: ${{ runner.os }}-sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite-${{ steps.sbml-test-suite-rev.outputs.sha }}
 
     - name: Download SBML test suite
       if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
-      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+      shell: bash
+      run: |
+        # only cases/semantic is needed
+        git clone --depth=1 --filter=blob:none --sparse https://github.com/sbmlteam/sbml-test-suite/
+        git -C sbml-test-suite sparse-checkout set cases/semantic
 
     - name: Install local packages
       run: |
@@ -78,16 +87,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-
 
+    - name: Get SBML test suite revision
+      id: sbml-test-suite-rev
+      shell: bash
+      run: echo "sha=$(git ls-remote https://github.com/sbmlteam/sbml-test-suite HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+
     - name: Cache / restore SBML test suite
       id: cache-sbml-test-suite
       uses: actions/cache@v6
       with:
         path: sbml-test-suite
-        key: ${{ runner.os }}-sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite-${{ steps.sbml-test-suite-rev.outputs.sha }}
 
     - name: Download SBML test suite
       if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
-      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+      shell: bash
+      run: |
+        # only cases/semantic is needed
+        git clone --depth=1 --filter=blob:none --sparse https://github.com/sbmlteam/sbml-test-suite/
+        git -C sbml-test-suite sparse-checkout set cases/semantic
 
     - name: Install local packages
       run: |
@@ -122,16 +140,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-
 
+    - name: Get SBML test suite revision
+      id: sbml-test-suite-rev
+      shell: bash
+      run: echo "sha=$(git ls-remote https://github.com/sbmlteam/sbml-test-suite HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+
     - name: Cache / restore SBML test suite
       id: cache-sbml-test-suite
       uses: actions/cache@v6
       with:
         path: sbml-test-suite
-        key: ${{ runner.os }}-sbml-test-suite
+        key: ${{ runner.os }}-sbml-test-suite-${{ steps.sbml-test-suite-rev.outputs.sha }}
 
     - name: Download SBML test suite
       if: steps.cache-sbml-test-suite.outputs.cache-hit != 'true'
-      run: git clone --depth=1 https://github.com/sbmlteam/sbml-test-suite/
+      shell: bash
+      run: |
+        # only cases/semantic is needed
+        git clone --depth=1 --filter=blob:none --sparse https://github.com/sbmlteam/sbml-test-suite/
+        git -C sbml-test-suite sparse-checkout set cases/semantic
 
     - name: Install local packages
       run: |
