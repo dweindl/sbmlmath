@@ -340,3 +340,34 @@ def test_parser_with_custom_assumptions():
     sym_expr = parser.parse_str(mathml)
     for symbol in sym_expr.free_symbols:
         assert symbol.is_real is True
+
+
+def test_log_without_logbase_defaults_to_base_10():
+    """MathML <log/> without <logbase> defaults to base 10.
+
+    https://github.com/dweindl/sbmlmath/issues/72
+    """
+    mathml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        "<apply><log/><ci> x </ci></apply>"
+        "</math>"
+    )
+    x = sp.Symbol("x")
+    for evaluate in (True, False):
+        expr = SBMLMathMLParser(evaluate=evaluate).parse_str(mathml)
+        assert expr == sp.log(x, 10, evaluate=evaluate)
+        assert expr.subs(x, 100).equals(2)
+
+
+def test_log_with_explicit_logbase_still_works():
+    """An explicit <logbase> continues to be used as the logarithm base."""
+    mathml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        '<apply><log/><logbase><cn type="integer"> 2 </cn></logbase>'
+        '<cn type="integer"> 8 </cn></apply>'
+        "</math>"
+    )
+    expr = SBMLMathMLParser(evaluate=True).parse_str(mathml)
+    assert expr == 3
