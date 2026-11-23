@@ -416,6 +416,7 @@ class SBMLMathMLParser:
                 #  -> "Second argument must be a Boolean, not `lt`"
                 #  Therefore, chain expressions with `and`.
                 sym_operator = mathml_op_sympy[operator.tag]
+                sym_operands = list(map(self._bool2num, sym_operands))
                 expr = True
                 for i in range(len(sym_operands) - 1):
                     expr = sp.And(
@@ -433,7 +434,14 @@ class SBMLMathMLParser:
         if operator.tag in mathml_op_sympy_boolean:
             sym_operands = list(map(self._num2bool, sym_operands))
         else:
-            sym_operands = list(map(_bool2num, sym_operands))
+            # Arguments of user-defined functions may be Boolean or numeric,
+            #  depending on the function definition. Boolean-valued
+            #  piecewise arguments are kept as is.
+            convert_piecewise = operator.tag != f"{{{mathml_ns}}}ci"
+            sym_operands = [
+                self._bool2num(x, convert_piecewise=convert_piecewise)
+                for x in sym_operands
+            ]
 
         with contextlib.suppress(KeyError):
             return mathml_op_sympy[operator.tag](
@@ -638,7 +646,9 @@ class SBMLMathMLParser:
                 # Only Boolean conditions are supported
                 #  -> convert
                 # this won't round-trip
-                cond = self._num2bool(cond)
+                cond = _expand_piecewise_relationals(
+                    self._num2bool(cond), evaluate=self.evaluate
+                )
                 expr_cond_pairs.append(
                     (self._parse_element(e[0]), cond),
                 )
@@ -704,6 +714,14 @@ class SBMLMathMLParser:
         """Convert operands in Boolean contexts to Boolean expressions."""
         return _num2bool(x, boolean_symbols=self._bound_symbols)
 
+    def _bool2num(
+        self, x: sp.Basic, convert_piecewise: bool = True
+    ) -> sp.Basic:
+        """Convert operands in numerical contexts to numerical expressions."""
+        return _bool2num(
+            x, evaluate=self.evaluate, convert_piecewise=convert_piecewise
+        )
+
     def preprocess_symbol_name(
         self, name: str, element: etree._Element = None
     ) -> str:
@@ -721,11 +739,15 @@ class SBMLMathMLParser:
         return name
 
 
-def _bool2num(x: sp.Basic) -> sp.Basic:
+def _bool2num(
+    x: sp.Basic, evaluate: bool = True, convert_piecewise: bool = True
+) -> sp.Basic:
     """Convert sympy Booleans to expressions or Integers.
 
     Peforms boolean->{int,float} conversion via
     ``Piecewise((1, expr), (0, True))``.
+    If `convert_piecewise` is ``True``, Boolean values of Piecewise
+    expressions are converted recursively.
 
     Return anything else as is.
     """
@@ -735,9 +757,114 @@ def _bool2num(x: sp.Basic) -> sp.Basic:
         return sp.Integer(1)
     if isinstance(x, Boolean) and not isinstance(x, sp.Symbol):
         #  `Piecewise((1, expr),(0,True))`
+        x = _expand_piecewise_relationals(x, evaluate=evaluate)
         return Piecewise((sp.Integer(1), x), (sp.Integer(0), sp.true))
+    if convert_piecewise and isinstance(x, Piecewise):
+        # Boolean-valued piecewise
+        pieces = [(_bool2num(expr, evaluate), cond) for expr, cond in x.args]
+        if any(
+            new is not old
+            for (new, _), (old, _) in zip(pieces, x.args, strict=True)
+        ):
+            return Piecewise(*pieces, evaluate=evaluate)
 
     return x
+
+
+def _expand_piecewise_relationals(
+    expr: sp.Basic, evaluate: bool = True
+) -> sp.Basic:
+    """Rewrite relationals with Piecewise subexpressions as Booleans.
+
+    ``rel(Piecewise((v1, c1), (v2, c2), ...))
+    -> (c1 & rel(v1)) | (~c1 & c2 & rel(v2)) | ...``
+
+    Applied recursively until no Piecewise is left.
+    Piecewise subexpressions of :class:`CFunction` calls are left as is,
+    as their conditions need not be evaluated at the current time
+    (e.g., ``delay``).
+
+    Used for Boolean expressions that become Piecewise conditions
+    (including those created by :func:`_bool2num`), which sympy would
+    otherwise fold itself, which fails for unevaluated expressions.
+    The result may grow exponentially with the number of Piecewise
+    subexpressions of a relational.
+    """
+    with sp.evaluate(evaluate):
+        return expr.replace(
+            lambda e: isinstance(e, sp.core.relational.Relational)
+            and e.has(Piecewise),
+            lambda rel: _try_expand_piecewise_relational(rel, evaluate),
+        )
+
+
+def _try_expand_piecewise_relational(
+    rel: sp.Basic, evaluate: bool = True
+) -> sp.Basic:
+    """Expand a relational, or return it as is if that fails.
+
+    Expansion fails, e.g., for non-real values (`1/0 > 1`) or
+    pint.Quantity operands.
+    """
+    try:
+        return _expand_piecewise_relational(rel, evaluate)
+    except (TypeError, ValueError):
+        return rel
+
+
+def _expand_piecewise_relational(
+    rel: sp.Basic, evaluate: bool = True
+) -> sp.Basic:
+    """Expand the expandable Piecewise subexpressions of a relational.
+
+    See :func:`_expand_piecewise_relationals`.
+    """
+    pw = next(_expandable_piecewise(rel), None)
+    if pw is None:
+        return rel
+
+    terms = []
+    previous_conds = []
+    for expr, cond in pw.args:
+        with sp.evaluate(evaluate):
+            # operands are evaluated only if requested
+            new_rel = _replace_outside_cfunctions(rel, pw, expr)
+        # The relational itself and the logical operators are always
+        #  evaluated: sympy's Piecewise fails on unevaluated relationals
+        #  of numbers, such as `1 > 1/2`.
+        with sp.evaluate(True):
+            new_rel = _expand_piecewise_relational(
+                new_rel.func(*new_rel.args), evaluate
+            )
+            terms.append(sp.And(*previous_conds, cond, new_rel))
+            previous_conds.append(sp.Not(cond))
+    with sp.evaluate(True):
+        return sp.Or(*terms)
+
+
+def _expandable_piecewise(expr: sp.Basic):
+    """Pre-order traversal for Piecewise, skipping CFunction calls."""
+    if isinstance(expr, Piecewise):
+        yield expr
+        return
+    if isinstance(expr.func, CFunction):
+        return
+    for arg in expr.args:
+        yield from _expandable_piecewise(arg)
+
+
+def _replace_outside_cfunctions(
+    expr: sp.Basic, old: sp.Basic, new: sp.Basic
+) -> sp.Basic:
+    """Replace `old` by `new`, skipping CFunction calls."""
+    if expr == old:
+        return new
+    if not expr.args or isinstance(expr.func, CFunction):
+        return expr
+    args = [_replace_outside_cfunctions(arg, old, new) for arg in expr.args]
+    if all(a is b for a, b in zip(args, expr.args, strict=True)):
+        return expr
+    return expr.func(*args)
 
 
 def _num2bool(
