@@ -16,6 +16,23 @@ If you're interested in contributing to the project, please follow these steps:
 Before submitting a pull request, please ensure that your code adheres to the
 project's coding standards and includes appropriate tests.
 
+Use of AI tools
+^^^^^^^^^^^^^^^
+
+You may use AI tools to help with your contribution, under these conditions:
+
+* You understand and have reviewed every change you submit.
+* You disclose any use of AI tools in the pull request description.
+* You respond to reviews and discussions in issues and pull requests
+  yourself; do not post AI-generated replies.
+
+We do not accept drive-by pull requests, i.e., AI-generated pull requests
+whose author does not engage with them personally.
+If a pull request merely relays between us and an AI tool,
+it is easier for us to use the AI tool ourselves.
+Such pull requests, and any others not meeting the conditions above,
+may be closed without comment.
+
 
 Development setup
 -----------------
