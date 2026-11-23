@@ -54,13 +54,13 @@ def _is_quantity(x) -> bool:
     return pint is not None and isinstance(x, pint.Quantity)
 
 
-def _require(condition: bool) -> None:
+def _require(condition: bool, message: str) -> None:
     """Raise if a condition on the MathML input is not met.
 
     Unlike ``assert``, not disabled by ``python -O``.
     """
     if not condition:
-        raise ValueError("Invalid or unsupported MathML.")
+        raise ValueError(f"Invalid or unsupported MathML: {message}")
 
 
 # some operator implementations to handle `evaluate`
@@ -214,6 +214,11 @@ unary = {
     f"{{{mathml_ns}}}root",
     *mathml_op_sympy_trigonometric,
 }
+# qualifier elements (not operands)
+qualifiers = {
+    f"{{{mathml_ns}}}degree",
+    f"{{{mathml_ns}}}logbase",
+}
 # n-ary functions
 n_ary = {
     f"{{{mathml_ns}}}times",
@@ -346,7 +351,7 @@ class SBMLMathMLParser:
     def _parse_element(self, element: etree._Element) -> sp.Expr:
         mathml_prefix = f"{{{mathml_ns}}}"
         if not element.tag.startswith(mathml_prefix):
-            raise AssertionError(element.tag)
+            raise ValueError(f"Not a MathML element: {element.tag}")
 
         stripped_tag = element.tag[len(mathml_prefix) :]
 
@@ -380,8 +385,9 @@ class SBMLMathMLParser:
             or len(operands) > 2
             and operator.tag not in n_ary
         ):
-            raise AssertionError(
-                f"Unknown arity for {operator.tag} ({operands}"
+            raise ValueError(
+                f"Unexpected number of operands for {operator.tag}: "
+                f"{len(operands)}"
             )
 
         if operator.tag.startswith(f"{{{mathml_ns}}}"):
@@ -451,30 +457,46 @@ class SBMLMathMLParser:
                     return sym_operands[0] - sym_operands[1]
                 if len(sym_operands) == 1:
                     return -sym_operands[0]
-            raise AssertionError(list(element))
+            raise ValueError(
+                f"<minus> expects 1 or 2 operands, got {len(operands)}."
+            )
 
         if operator.tag == f"{{{mathml_ns}}}root":
-            _require(len(sym_operands) in {1, 2})
+            _require(
+                len(operands) in {1, 2}, "<root> expects 1 or 2 operands."
+            )
+            _require(
+                operands[-1].tag not in qualifiers,
+                "<root> requires an argument.",
+            )
             if len(sym_operands) == 1:
                 # defaults to sqrt
                 degree = 2
             else:
                 degree = sym_operands[0]
-                _require(operands[0].tag == f"{{{mathml_ns}}}degree")
+                _require(
+                    operands[0].tag == f"{{{mathml_ns}}}degree",
+                    "<root> expects <degree> as first of 2 operands.",
+                )
 
             with sp.evaluate(self.evaluate):
                 return sym_operands[-1] ** (1 / degree)
 
         if operator.tag == f"{{{mathml_ns}}}log":
-            _require(len(operands) in {1, 2})
+            _require(len(operands) in {1, 2}, "<log> expects 1 or 2 operands.")
+            _require(
+                operands[-1].tag not in qualifiers,
+                "<log> requires an argument.",
+            )
             if len(operands) == 1:
                 # defaults to log10
-                _require(operands[0].tag != f"{{{mathml_ns}}}logbase")
                 base = sp.Integer(10)
                 x = sym_operands[0]
             else:
-                _require(operands[0].tag == f"{{{mathml_ns}}}logbase")
-                _require(len(operands[0]) == 1)
+                _require(
+                    operands[0].tag == f"{{{mathml_ns}}}logbase",
+                    "<log> expects <logbase> as first of 2 operands.",
+                )
                 base, x = sym_operands
             # with evaluate=True, this becomes ``log(x)/log(base)``
             return sp.log(x, base, evaluate=self.evaluate)
@@ -482,21 +504,27 @@ class SBMLMathMLParser:
         if operator.tag == f"{{{mathml_ns}}}quotient":
             # there is no direct correspondence for truncated integer
             #  division in sympy. this won't cycle.
-            _require(len(operands) == 2)
+            _require(len(operands) == 2, "<quotient> expects 2 operands.")
             return _quotient(*sym_operands, evaluate=self.evaluate)
 
         name = self.preprocess_symbol_name(operator.text.strip(), operator)
 
         if operator.tag == f"{{{mathml_ns}}}csymbol":
             # examples: rateOf, delay, distributions from distrib package
-            _require(operator.attrib["encoding"] == "text")
+            _require(
+                operator.attrib.get("encoding") == "text",
+                '<csymbol> requires encoding="text".',
+            )
             return CFunction(
                 name,
                 definition_url=operator.attrib["definitionURL"],
             )(*sym_operands)
 
         if operator.tag == f"{{{mathml_ns}}}ci":
-            _require(not operator.attrib)
+            _require(
+                not operator.attrib,
+                f"Unexpected <ci> attributes: {dict(operator.attrib)}",
+            )
             return sp.Function(name, real=True)(*sym_operands)
 
         raise NotImplementedError(f"Unsupported operator {operator.tag}.")
@@ -596,7 +624,10 @@ class SBMLMathMLParser:
             #   Nested piecewise functions may work, though, if the inner
             #   expressions are all Boolean
             if e.tag == f"{{{mathml_ns}}}piece":
-                _require(len(e) == 2)
+                _require(
+                    len(e) == 2,
+                    "<piece> expects an expression and a condition.",
+                )
                 cond = self._parse_element(e[1])
                 # Only Boolean conditions are supported
                 #  -> convert
@@ -607,13 +638,16 @@ class SBMLMathMLParser:
                 )
             elif e.tag == f"{{{mathml_ns}}}otherwise":
                 # may occur only as last condition
-                _require(e is element[-1])
-                _require(len(e) == 1)
+                _require(
+                    e is element[-1],
+                    "<otherwise> must be the last child of <piecewise>.",
+                )
+                _require(len(e) == 1, "<otherwise> expects 1 child.")
                 expr_cond_pairs.append(
                     (self._parse_element(e[0]), True),
                 )
             else:
-                raise AssertionError(e.tag)
+                raise ValueError(f"Unexpected child of <piecewise>: {e.tag}")
 
         with sp.evaluate(self.evaluate):
             return sp.Piecewise(*expr_cond_pairs)
@@ -623,8 +657,11 @@ class SBMLMathMLParser:
         # collect arguments / bound variables
         args = []
         for e in element[:-1]:
-            _require(e.tag == f"{{{mathml_ns}}}bvar")
-            _require(len(e) == 1)
+            _require(
+                e.tag == f"{{{mathml_ns}}}bvar",
+                f"Expected <bvar> in <lambda>, got {e.tag}.",
+            )
+            _require(len(e) == 1, "<bvar> expects 1 child.")
             args.append(self._parse_element(e[0]))
 
         # Bound variables may be Boolean, depending on the call site.
@@ -638,15 +675,18 @@ class SBMLMathMLParser:
         return sp.Lambda(tuple(args), rhs)
 
     def handle_degree(self, element: etree._Element) -> sp.Expr:
-        _require(len(element) == 1)
+        _require(len(element) == 1, "<degree> expects 1 child.")
         return self._parse_element(element[0])
 
     def handle_logbase(self, element: etree._Element) -> sp.Expr:
-        _require(len(element) == 1)
+        _require(len(element) == 1, "<logbase> expects 1 child.")
         return self._parse_element(element[0])
 
     def handle_csymbol(self, element: etree._Element) -> sp.Expr:
-        _require(element.attrib["encoding"] == "text")
+        _require(
+            element.attrib.get("encoding") == "text",
+            '<csymbol> requires encoding="text".',
+        )
         return CSymbol(
             self.preprocess_symbol_name(element.text.strip(), element),
             encoding=element.attrib["encoding"],

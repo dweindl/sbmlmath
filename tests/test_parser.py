@@ -459,6 +459,58 @@ def test_invalid_input_rejected_without_assertions():
         [sys.executable, "-O", "-c", code],
         capture_output=True,
         text=True,
+        timeout=60,
     )
     assert result.returncode != 0
     assert "ValueError: Failed parsing" in result.stderr
+    assert "<log> requires an argument." in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("mathml", "message"),
+    (
+        (
+            "<apply><log/><logbase><cn>2</cn></logbase></apply>",
+            "<log> requires an argument.",
+        ),
+        (
+            "<apply><log/><logbase><cn>2</cn></logbase>"
+            "<logbase><cn>8</cn></logbase></apply>",
+            "<log> requires an argument.",
+        ),
+        (
+            "<apply><root/><degree><cn>3</cn></degree></apply>",
+            "<root> requires an argument.",
+        ),
+        (
+            "<apply><root/><degree><cn>3</cn></degree>"
+            "<degree><cn>8</cn></degree></apply>",
+            "<root> requires an argument.",
+        ),
+        (
+            "<apply><log/><cn>2</cn><cn>8</cn></apply>",
+            "<log> expects <logbase> as first of 2 operands.",
+        ),
+        (
+            "<piecewise><otherwise><cn>1</cn></otherwise>"
+            "<piece><cn>2</cn><true/></piece></piecewise>",
+            "<otherwise> must be the last child of <piecewise>.",
+        ),
+    ),
+)
+def test_invalid_input(mathml, message):
+    """Malformed input raises `ValueError` with a reason."""
+    with pytest.raises(ValueError, match="Failed parsing") as exc_info:
+        SBMLMathMLParser().parse_str(
+            f'<math xmlns="http://www.w3.org/1998/Math/MathML">{mathml}</math>'
+        )
+    assert message in str(exc_info.value.__cause__)
+
+
+def test_non_mathml_element():
+    """Non-MathML elements raise `ValueError`."""
+    with pytest.raises(ValueError, match="Not a MathML element"):
+        SBMLMathMLParser().parse_str(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '<foo xmlns="urn:x"/></math>'
+        )
