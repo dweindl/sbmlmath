@@ -241,6 +241,16 @@ def test_bool2num():
         (1, a | b),
         (0, True),
     )
+    # Boolean-valued piecewise
+    assert _bool2num(Piecewise((sp.true, a > 0), (sp.false, True))) == (
+        Piecewise((1, a > 0), (0, True))
+    )
+    assert _bool2num(Piecewise((b > 1, a > 0), (sp.false, True))) == (
+        Piecewise((Piecewise((1, b > 1), (0, True)), a > 0), (0, True))
+    )
+    # numeric piecewise is returned as is
+    expr = Piecewise((a, a > 0), (0, True))
+    assert _bool2num(expr) is expr
 
 
 def test_num2_bool():

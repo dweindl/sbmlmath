@@ -1,3 +1,4 @@
+import itertools
 import subprocess
 import sys
 
@@ -6,6 +7,7 @@ import pytest
 import sympy as sp
 
 from sbmlmath import *
+from sbmlmath.mathml_parser import _expand_piecewise_relationals
 
 
 # https://sbml.org/software/libsbml/5.18.0/docs/formatted/python-api/classlibsbml_1_1_a_s_t_node.html
@@ -533,3 +535,119 @@ def test_log_with_base_is_differentiable(evaluate):
     assert all(len(f.args) == 1 for f in expr.atoms(sp.log))
     assert sp.simplify(expr.diff(x) - 1 / (x * sp.log(2))) == 0
     assert sp.ccode(expr) == "log(x)/M_LN2"
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_relational_operators_boolean_operands(evaluate):
+    """Boolean operands of relational operators are converted to numbers.
+
+    https://github.com/dweindl/sbmlmath/issues/65
+    """
+    x, a = sp.symbols("x a", real=True)
+    parser = SBMLMathMLParser(
+        evaluate=evaluate, ignore_units=True, symbol_kwargs={"real": True}
+    )
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    # (relational, whether it is equivalent to `{b}`)
+    #  (function syntax, as libsbml parses `(a > b) == c` as
+    #  `a > b && b == c`)
+    relationals = [
+        ("gt({b}, 0.5)", True),
+        ("lt(0.5, {b})", True),
+        ("geq({b}, 1)", True),
+        ("leq({b}, 0)", False),
+        ("eq({b}, 1)", True),
+        ("eq(1, {b})", True),
+        ("neq({b}, 1)", False),
+        ("eq({b}, true)", True),
+        # n-ary
+        ("gt(2, {b}, 0.5)", True),
+        ("eq(1, {b}, true)", True),
+    ]
+    # Boolean expressions with piecewise, equivalent to `x > {rhs}`
+    booleans = (
+        "piecewise(true, x > {rhs}, false)",
+        "piecewise(piecewise(true, x > {rhs}, false), x > {rhs} - 1, false)",
+        "piecewise(x > {rhs}, x > {rhs} - 2, false)",
+        "gt(piecewise(true, x > {rhs}, false), 0.5)",
+    )
+    for b, rhs, (rel, equivalent) in itertools.product(
+        booleans, ("a", "0"), relationals
+    ):
+        rel = rel.format(b=b.format(rhs=rhs))
+        for formula, values in (
+            (rel, (sp.true, sp.false)),
+            (f"piecewise(5, {rel}, 7)", (5, 7)),
+        ):
+            expr = parse(formula)
+            expr_rt = parser.parse_str(SBMLMathMLPrinter().doprint(expr))
+            for x_val, x_gt_a in ((1, True), (-0.5, False), (-3, False)):
+                expected = values[0] if x_gt_a == equivalent else values[1]
+                for e in (expr, expr_rt):
+                    assert e.subs({x: x_val, a: 0}) == expected, (formula, e)
+
+    # Boolean literal operands of n-ary relational operators
+    assert parse("gt(2, true, 0.5)").doit() == sp.true
+    assert parse("eq(1, true, 1)").doit() == sp.true
+
+    # relational with piecewise operand in a numerical context
+    expr = parse("gt(piecewise(2, x > a, 0), 1) + 1")
+    assert not expr.has(sp.ITE)
+    assert expr.subs({x: 1, a: 0}) == 2
+    assert expr.subs({x: -1, a: 0}) == 1
+
+    # Boolean-valued piecewise arguments of user-defined functions are kept,
+    #  as the function may expect a Boolean
+    lam = parse("lambda(b, piecewise(1, b, 0))")
+    expr = parse("f(piecewise(true, x > a, false))")
+    expr = expr.replace(expr.func, lam)
+    assert expr.subs({x: 1, a: 0}) == 1
+    assert expr.subs({x: -1, a: 0}) == 0
+
+    # operands of the expanded relationals are evaluated only if requested
+    expr = parse("piecewise(1, piecewise(x, x > a, 0) + 0 > 0.5, 0)")
+    assert expr.has(sp.Add) is not evaluate
+    assert expr.subs({x: 1, a: 0}) == 1
+    assert expr.subs({x: 0.25, a: 0}) == 0
+
+
+def test_piecewise_relational_conditions_not_expandable():
+    """Relationals that can't be expanded are left to sympy.
+
+    E.g., due to units or non-real values in non-selected pieces.
+    """
+    parser = SBMLMathMLParser(evaluate=False)
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    for formula in (
+        "piecewise(1, gt(piecewise(2 second, x > a, 0 second), 1 second), 0)",
+        "piecewise(1, gt(piecewise(x, x > a, 0), 2 dimensionless), 0)",
+        "piecewise(1, gt(1/piecewise(0, x > a, 1), 0.5), 0)",
+        "piecewise(1, gt(ln(piecewise(0, x > a, 1)), -1), 0)",
+    ):
+        assert isinstance(parse(formula), sp.Piecewise)
+
+
+def test_expand_piecewise_relationals_skips_cfunctions():
+    """Piecewise arguments of CFunctions are not expanded.
+
+    Their conditions need not be evaluated at the current time.
+    """
+    x = sp.Symbol("x", real=True)
+    pw = sp.Piecewise((2, x > 0), (3, True))
+    for rel in (delay(pw, 1) > 2.5, rate_of(pw) + 1 > 2.5):
+        assert _expand_piecewise_relationals(rel) == rel
+    # the piecewise outside the CFunction is expanded
+    rel = delay(pw, 1) > pw
+    assert _expand_piecewise_relationals(rel) == (
+        (x > 0) & (delay(pw, 1) > 2) | (x <= 0) & (delay(pw, 1) > 3)
+    )
