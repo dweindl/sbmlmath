@@ -940,8 +940,7 @@ def _try_expand_piecewise_relational(
 ) -> sp.Basic:
     """Expand a relational, or return it as is if that fails.
 
-    Expansion fails, e.g., for non-real values (`1/0 > 1`) or
-    pint.Quantity operands.
+    Expansion fails, e.g., for some pint.Quantity operands.
     """
     try:
         return _expand_piecewise_relational(rel, evaluate)
@@ -970,9 +969,14 @@ def _expand_piecewise_relational(
         #  evaluated: sympy's Piecewise fails on unevaluated relationals
         #  of numbers, such as `1 > 1/2`.
         with sp.evaluate(True):
-            new_rel = _expand_piecewise_relational(
-                new_rel.func(*new_rel.args), evaluate
-            )
+            try:
+                new_rel = new_rel.func(*new_rel.args)
+            except (TypeError, ValueError):
+                # e.g., non-real values (`1/0 > 1`). Keep them unevaluated,
+                #  since leaving the Piecewise to sympy fails for multivariate
+                #  conditions (sympy>=1.15).
+                new_rel = new_rel.func(*new_rel.args, evaluate=False)
+            new_rel = _expand_piecewise_relational(new_rel, evaluate)
             terms.append(sp.And(*previous_conds, cond, new_rel))
             previous_conds.append(sp.Not(cond))
     with sp.evaluate(True):
