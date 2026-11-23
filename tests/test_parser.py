@@ -651,3 +651,38 @@ def test_expand_piecewise_relationals_skips_cfunctions():
     assert _expand_piecewise_relationals(rel) == (
         (x > 0) & (delay(pw, 1) > 2) | (x <= 0) & (delay(pw, 1) > 3)
     )
+
+
+@pytest.mark.parametrize(
+    ("mathml", "expected"),
+    (
+        ("<!-- c --><ci>x</ci>", sp.Symbol("x")),
+        ("<?pi foo?><ci>x</ci>", sp.Symbol("x")),
+        (
+            "<apply><!-- c --><plus/><ci>x</ci><ci>y</ci></apply>",
+            sp.Symbol("x") + sp.Symbol("y"),
+        ),
+        (
+            "<apply><plus/><!-- c --><ci>x</ci><ci>y</ci><!-- c --></apply>",
+            sp.Symbol("x") + sp.Symbol("y"),
+        ),
+        ("<cn>1<!-- c -->2</cn>", sp.Integer(12)),
+        (
+            '<cn type="e-notation">1<!-- c --><sep/><!-- c -->2</cn>',
+            sp.Float(100),
+        ),
+        (
+            "<piecewise><!-- c --><piece><cn>1</cn><true/></piece>"
+            "<otherwise><cn>2</cn></otherwise><!-- c --></piecewise>",
+            sp.Piecewise((1, True), (2, True)),
+        ),
+    ),
+)
+def test_comments_and_processing_instructions_ignored(mathml, expected):
+    """XML comments and processing instructions are ignored."""
+    assert (
+        SBMLMathMLParser(evaluate=True).parse_str(
+            f'<math xmlns="http://www.w3.org/1998/Math/MathML">{mathml}</math>'
+        )
+        == expected
+    )
