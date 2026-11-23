@@ -619,11 +619,12 @@ def test_relational_operators_boolean_operands(evaluate):
 
 
 def test_piecewise_relational_conditions_not_expandable():
-    """Relationals that can't be expanded are left to sympy.
+    """Relationals that can't be evaluated in all pieces.
 
     E.g., due to units or non-real values in non-selected pieces.
     """
     parser = SBMLMathMLParser(evaluate=False)
+    x, a = sp.symbols("x a")
 
     def parse(formula):
         return parser.parse_str(
@@ -633,10 +634,30 @@ def test_piecewise_relational_conditions_not_expandable():
     for formula in (
         "piecewise(1, gt(piecewise(2 second, x > a, 0 second), 1 second), 0)",
         "piecewise(1, gt(piecewise(x, x > a, 0), 2 dimensionless), 0)",
-        "piecewise(1, gt(1/piecewise(0, x > a, 1), 0.5), 0)",
-        "piecewise(1, gt(ln(piecewise(0, x > a, 1)), -1), 0)",
     ):
         assert isinstance(parse(formula), sp.Piecewise)
+
+    # non-real values are kept in unevaluated relationals
+    for formula, non_real_rel in (
+        (
+            "piecewise(1, gt(1/piecewise(0, x > a, 1), 0.5), 0)",
+            sp.StrictGreaterThan(
+                sp.Pow(0, -1, evaluate=False),
+                sp.Rational(1, 2),
+                evaluate=False,
+            ),
+        ),
+        (
+            "piecewise(1, gt(ln(piecewise(0, x > a, 1)), -1), 0)",
+            sp.StrictGreaterThan(
+                sp.log(0, evaluate=False), -1, evaluate=False
+            ),
+        ),
+    ):
+        result = parse(formula)
+        assert result.args[0].expr == 1
+        assert result.args[0].cond == (x <= a) | ((x > a) & non_real_rel)
+        assert result.args[1] == (0, True)
 
 
 def test_expand_piecewise_relationals_skips_cfunctions():
