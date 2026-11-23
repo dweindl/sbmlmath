@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import operator as operators
 import sys
+import threading
 from functools import cache, reduce
 from io import BytesIO
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING
 import sympy as sp
 from lxml import etree
 from sympy import Piecewise
+from sympy.core.parameters import global_parameters
 from sympy.logic.boolalg import (
     Boolean,
     BooleanFalse,
@@ -63,6 +65,38 @@ def _require(condition: bool, message: str) -> None:
         raise ValueError(f"Invalid or unsupported MathML: {message}")
 
 
+# sympy's global `evaluate` flag at the start of the current
+#  `SBMLMathMLParser.parse_file` call (sympy's flag is thread-local, too)
+_caller = threading.local()
+
+
+def _caller_evaluate() -> bool:
+    """Get the `evaluate` flag of the code calling the parser.
+
+    For constructions that are not subject to ``SBMLMathMLParser.evaluate``.
+    """
+    return getattr(_caller, "evaluate", global_parameters.evaluate)
+
+
+# MathML elements whose handling depends on sympy's global `evaluate` flag
+#  (see the `sp.evaluate` blocks below)
+_global_evaluate_tags = frozenset(
+    f"{{{mathml_ns}}}{tag}"
+    for tag in (
+        "times",
+        "divide",
+        "power",
+        "rem",
+        "plus",
+        "minus",
+        "root",
+        "quotient",
+        "piecewise",
+        "log",
+    )
+)
+
+
 # some operator implementations to handle `evaluate`
 #  *and* be compatible with non Expr operands
 # (non-Expr is deprecated for Add, Mul, Pow, ...)
@@ -83,16 +117,25 @@ def _mul(*args, evaluate: bool = False):
 def _pow(base, exponent, evaluate: bool = False):
     # pint can't raise units to a symbolic power. For a dimensionless base,
     #  the result is dimensionless, so we can drop the units.
-    if _is_quantity(base) and not isinstance(
-        _strip_dimensionless(exponent), int | float | sp.Number
-    ):
+    if not _is_quantity(base):
+        with sp.evaluate(evaluate):
+            return base**exponent
+
+    # unit conversion factors are always applied
+    if _is_quantity(exponent):
+        with sp.evaluate(True):
+            stripped_exponent = _strip_dimensionless(exponent)
+    else:
+        stripped_exponent = exponent
+    if not isinstance(stripped_exponent, int | float | sp.Number):
         if not base.dimensionless:
             raise ValueError(
                 f"Cannot raise `{base}` to the non-numeric power "
                 f"`{exponent}`: the units of the result are undefined."
             )
-        base = _strip_dimensionless(base)
-        exponent = _strip_dimensionless(exponent)
+        with sp.evaluate(True):
+            base = _strip_dimensionless(base)
+        exponent = stripped_exponent
 
     with sp.evaluate(evaluate):
         return base**exponent
@@ -270,6 +313,14 @@ class SBMLMathMLParser:
     :param symbol_kwargs:
         Additional keyword arguments for constructing :class:`sympy.Symbol`.
         For example, for passing custom assumptions such as ``real=True``.
+    :param evaluate:
+        Whether to evaluate the parsed operators, see :func:`sympy.evaluate`.
+
+        During parsing, sympy's global ``evaluate`` flag is set to this value,
+        so it also applies to subclass handlers and
+        :meth:`preprocess_symbol_name`.
+        Function applications and the conversion of numbers to Booleans
+        follow the caller's ``evaluate`` flag instead.
     """
 
     def __init__(
@@ -318,7 +369,24 @@ class SBMLMathMLParser:
             if element.tag == f"{{{mathml_ns}}}math":
                 continue
 
-            return self._parse_element(element)
+            if not any(e.tag in _global_evaluate_tags for e in element.iter()):
+                # no operators that depend on the global `evaluate` flag
+                return self._parse_element(element)
+
+            # sympy clears its cache whenever the global `evaluate` flag
+            #  changes. Set it once here, so that the per-operator
+            #  `sp.evaluate` blocks don't change it at every node.
+            if hasattr(_caller, "evaluate"):
+                # nested parse: keep the outermost caller's flag
+                with sp.evaluate(self.evaluate):
+                    return self._parse_element(element)
+
+            _caller.evaluate = global_parameters.evaluate
+            try:
+                with sp.evaluate(self.evaluate):
+                    return self._parse_element(element)
+            finally:
+                del _caller.evaluate
 
     @property
     def ureg(self) -> UnitRegistry:
@@ -420,22 +488,29 @@ class SBMLMathMLParser:
                 #  Therefore, chain expressions with `and`.
                 sym_operator = mathml_op_sympy[operator.tag]
                 sym_operands = list(map(self._bool2num, sym_operands))
-                expr = True
-                for i in range(len(sym_operands) - 1):
-                    expr = sp.And(
-                        expr,
-                        sym_operator(
-                            sym_operands[i],
-                            sym_operands[i + 1],
-                            evaluate=self.evaluate,
-                        ),
+                relationals = [
+                    sym_operator(lhs, rhs, evaluate=self.evaluate)
+                    for lhs, rhs in zip(
+                        sym_operands[:-1], sym_operands[1:], strict=True
                     )
+                ]
+                # avoid changing the global flag (clears the cache)
+                if _caller_evaluate():
+                    return sp.And(*relationals, evaluate=True)
+                expr = True
+                for relational in relationals:
+                    expr = sp.And(expr, relational, evaluate=False)
                 return expr
 
         # explicit boolean->{int,float} conversion for non-boolean functions,
         #  since sympy does not do that automatically
         if operator.tag in mathml_op_sympy_boolean:
-            sym_operands = list(map(self._num2bool, sym_operands))
+            if any(map(self._num2bool_needs_caller_evaluate, sym_operands)):
+                # change the global flag (clears the cache) only once
+                with sp.evaluate(_caller_evaluate()):
+                    sym_operands = list(map(self._num2bool, sym_operands))
+            else:
+                sym_operands = list(map(self._num2bool, sym_operands))
         else:
             # Arguments of user-defined functions may be Boolean or numeric,
             #  depending on the function definition. Boolean-valued
@@ -535,14 +610,16 @@ class SBMLMathMLParser:
             return CFunction(
                 name,
                 definition_url=operator.attrib["definitionURL"],
-            )(*sym_operands)
+            )(*sym_operands, evaluate=_caller_evaluate())
 
         if operator.tag == f"{{{mathml_ns}}}ci":
             _require(
                 not operator.attrib,
                 f"Unexpected <ci> attributes: {dict(operator.attrib)}",
             )
-            return sp.Function(name, real=True)(*sym_operands)
+            return sp.Function(name, real=True)(
+                *sym_operands, evaluate=_caller_evaluate()
+            )
 
         raise NotImplementedError(f"Unsupported operator {operator.tag}.")
 
@@ -713,9 +790,28 @@ class SBMLMathMLParser:
             **self.symbol_kwargs,
         )
 
+    @staticmethod
+    def _num2bool_needs_caller_evaluate(x: sp.Basic) -> bool:
+        """Whether converting `x` to a Boolean requires the caller's global
+        `evaluate` flag.
+
+        `sp.Ne(expr, 0, evaluate=...)` doesn't suffice for non-symbol
+        expressions, since sympy's internal arithmetic follows the global flag.
+        """
+        return not isinstance(x, Boolean)
+
     def _num2bool(self, x: sp.Basic) -> sp.Basic:
         """Convert operands in Boolean contexts to Boolean expressions."""
-        return _num2bool(x, boolean_symbols=self._bound_symbols)
+        if isinstance(x, sp.Symbol):
+            # avoid changing the global flag (clears the cache)
+            if x in self._bound_symbols:
+                return x
+            return sp.Ne(x, 0, evaluate=_caller_evaluate())
+        if not self._num2bool_needs_caller_evaluate(x):
+            # nothing to convert
+            return x
+        with sp.evaluate(_caller_evaluate()):
+            return _num2bool(x, boolean_symbols=self._bound_symbols)
 
     def _bool2num(
         self, x: sp.Basic, convert_piecewise: bool = True
@@ -793,6 +889,9 @@ def _expand_piecewise_relationals(
     The result may grow exponentially with the number of Piecewise
     subexpressions of a relational.
     """
+    if not expr.has(Piecewise):
+        # avoid changing the global flag (clears the cache)
+        return expr
     with sp.evaluate(evaluate):
         return expr.replace(
             lambda e: isinstance(e, sp.core.relational.Relational)

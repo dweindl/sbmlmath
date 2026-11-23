@@ -390,6 +390,8 @@ def test_power_scaled_dimensionless_base_symbolic_exponent():
     )
     result = SBMLMathMLParser().parse_str(mathml)
     assert sp.simplify(result - sp.Rational(1, 10) ** sp.Symbol("x")) == 0
+    # the unit conversion factor is applied, also with `evaluate=False`
+    assert result.base.is_Number
 
 
 def test_power_base_with_units_symbolic_exponent():
@@ -685,4 +687,79 @@ def test_comments_and_processing_instructions_ignored(mathml, expected):
             f'<math xmlns="http://www.w3.org/1998/Math/MathML">{mathml}</math>'
         )
         == expected
+    )
+
+
+def test_parse_does_not_repeatedly_clear_sympy_cache(monkeypatch):
+    """Changing sympy's global `evaluate` flag clears the sympy cache.
+
+    https://github.com/dweindl/sbmlmath/issues/71
+    """
+    import sympy.core.parameters
+
+    n_clear_cache = 0
+    clear_cache = sympy.core.parameters.clear_cache
+
+    def counting_clear_cache():
+        nonlocal n_clear_cache
+        n_clear_cache += 1
+        clear_cache()
+
+    monkeypatch.setattr(
+        sympy.core.parameters, "clear_cache", counting_clear_cache
+    )
+    mathml = libsbml.writeMathMLToString(
+        libsbml.parseL3Formula(
+            "a * b / (c + d^2) - e + root(3, f) + piecewise(1, t > 2, 0)"
+            " + piecewise(1, (a && b) || !c || lt(1, x, 3), 0)"
+        )
+    )
+    parser = SBMLMathMLParser(evaluate=False)
+
+    # entering and leaving `sp.evaluate(False)` once
+    parser.parse_str(mathml)
+    assert n_clear_cache == 2
+
+    def count_clear_cache(formula):
+        nonlocal n_clear_cache
+        n_clear_cache = 0
+        parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+        return n_clear_cache
+
+    # no operators that depend on the global flag
+    for formula in ("a", "2", "1.5", "sin(a < b)", "lt(1, x, 3)", "!a"):
+        assert count_clear_cache(formula) == 0, formula
+
+    # non-symbol operands in Boolean contexts are converted under the
+    #  caller's flag, which is changed once per Boolean operator
+    assert count_clear_cache("and(a * b, c, d * e, f + 1)") == 4
+
+    # no changes to the global flag at all
+    with sp.evaluate(False):
+        n_clear_cache = 0
+        parser.parse_str(mathml)
+        assert n_clear_cache == 0
+
+
+def test_evaluate_false_unaffected_constructions():
+    """`evaluate=False` only applies to the parsed operators."""
+    parser = SBMLMathMLParser(evaluate=False)
+    x = sp.Symbol("x")
+
+    # function evaluation
+    mathml = (
+        '<math xmlns="http://www.w3.org/1998/Math/MathML"><apply>'
+        '<csymbol encoding="text" '
+        'definitionURL="http://www.sbml.org/sbml/symbols/rateOf">rateOf'
+        "</csymbol><cn>1</cn></apply></math>"
+    )
+    assert parser.parse_str(mathml) == 0
+
+    # n-ary relational operators are chained without a leading `True`
+    mathml = libsbml.writeMathMLToString(libsbml.parseL3Formula("lt(1, x, 3)"))
+    assert parser.parse_str(mathml).args == (
+        sp.StrictLessThan(1, x, evaluate=False),
+        sp.StrictLessThan(x, 3, evaluate=False),
     )
