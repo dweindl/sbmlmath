@@ -310,7 +310,10 @@ class SBMLMathMLParser:
         """
         # Using `lxml` to parse untrusted data is known to be vulnerable to XML
         #  attacks
-        element_tree = etree.parse(file_like)  # noqa S320
+        # Drop comments and processing instructions, so that they are neither
+        #  treated as MathML elements nor split text content.
+        parser = etree.XMLParser(remove_comments=True, remove_pis=True)
+        element_tree = etree.parse(file_like, parser)  # noqa S320
         for element in element_tree.iter():
             if element.tag == f"{{{mathml_ns}}}math":
                 continue
