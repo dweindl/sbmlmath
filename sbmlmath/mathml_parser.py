@@ -190,6 +190,7 @@ unary = {
     f"{{{mathml_ns}}}floor",
     f"{{{mathml_ns}}}factorial",
     f"{{{mathml_ns}}}ln",
+    f"{{{mathml_ns}}}log",
     f"{{{mathml_ns}}}min",
     f"{{{mathml_ns}}}max",
     f"{{{mathml_ns}}}root",
@@ -447,11 +448,17 @@ class SBMLMathMLParser:
                 return sym_operands[-1] ** (1 / degree)
 
         if operator.tag == f"{{{mathml_ns}}}log":
-            assert len(operands) == 2
-            assert operands[0].tag == f"{{{mathml_ns}}}logbase"
-            assert len(operands[0]) == 1
-            base, x = sym_operands
-            # won't cycle - will be transformed to ``log(x)/log(base)``
+            assert len(operands) in {1, 2}
+            if len(operands) == 1:
+                # defaults to log10
+                assert operands[0].tag != f"{{{mathml_ns}}}logbase"
+                base = sp.Integer(10)
+                x = sym_operands[0]
+            else:
+                assert operands[0].tag == f"{{{mathml_ns}}}logbase"
+                assert len(operands[0]) == 1
+                base, x = sym_operands
+            # with evaluate=True, this becomes ``log(x)/log(base)``
             return sp.log(x, base, evaluate=self.evaluate)
 
         if operator.tag == f"{{{mathml_ns}}}quotient":

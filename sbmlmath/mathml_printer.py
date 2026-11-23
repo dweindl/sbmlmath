@@ -209,6 +209,20 @@ class SBMLMathMLPrinter(MathMLContentPrinter):
             return self._print_CFunction(e)
         return super()._print_Function(e)
 
+    def _print_log(self, e):
+        if len(e.args) == 1:
+            return self._print_Function(e)
+
+        # unevaluated `log(x, base)`
+        x, base = e.args
+        dom_element = self.dom.createElement("apply")
+        dom_element.appendChild(self.dom.createElement("log"))
+        logbase = self.dom.createElement("logbase")
+        logbase.appendChild(self._print(base))
+        dom_element.appendChild(logbase)
+        dom_element.appendChild(self._print(x))
+        return dom_element
+
     def _print_CFunction(self, e):
         dom_element = self.dom.createElement("apply")
         csymbol = self.dom.createElement("csymbol")

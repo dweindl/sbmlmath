@@ -340,3 +340,32 @@ def test_parser_with_custom_assumptions():
     sym_expr = parser.parse_str(mathml)
     for symbol in sym_expr.free_symbols:
         assert symbol.is_real is True
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_log_default_base(evaluate):
+    """`<log/>` without `<logbase>` defaults to base 10.
+
+    https://github.com/dweindl/sbmlmath/issues/72
+    """
+    x = sp.Symbol("x")
+    parser = SBMLMathMLParser(evaluate=evaluate)
+    implicit = parser.parse_str(
+        '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        "<apply><log/><ci>x</ci></apply></math>"
+    )
+    explicit = parser.parse_str(
+        '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        '<apply><log/><logbase><cn type="integer">10</cn></logbase>'
+        "<ci>x</ci></apply></math>"
+    )
+    assert implicit == explicit
+    assert sp.simplify(implicit.subs(x, 1000).doit()) == 3
+
+    mathml = SBMLMathMLPrinter().doprint(implicit)
+    assert parser.parse_str(mathml) == implicit
+    ast = libsbml.readMathMLFromString(mathml)
+    assert libsbml.formulaToL3String(ast) in {
+        "log10(x)",
+        "ln(x) / ln(10 dimensionless)",
+    }

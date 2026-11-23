@@ -67,6 +67,24 @@ def test_print_mod():
     assert libsbml.formulaToL3String(ast) == "a - b * floor(a / b)"
 
 
+def test_print_log_with_base():
+    """Unevaluated `log(x, base)` is printed using `<logbase>`."""
+    x = sp.Symbol("x")
+    expr = sp.log(x, 2, evaluate=False)
+    mathml = SBMLMathMLPrinter().doprint(expr, with_math=False)
+    assert mathml == (
+        "<apply><log/><logbase>"
+        '<cn type="integer" sbml:units="dimensionless">2</cn>'
+        "</logbase><ci>x</ci></apply>"
+    )
+
+    ast = libsbml.readMathMLFromString(SBMLMathMLPrinter().doprint(expr))
+    assert libsbml.formulaToL3String(ast) == "log(2 dimensionless, x)"
+
+    parser = SBMLMathMLParser(evaluate=False)
+    assert parser.parse_str(SBMLMathMLPrinter().doprint(expr)) == expr
+
+
 def test_print_ite():
     # SBML MathML has no if-then-else operator -- print as <piecewise>
     x, y = sp.symbols("x y")
