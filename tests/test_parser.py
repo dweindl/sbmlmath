@@ -642,16 +642,16 @@ def test_piecewise_relational_conditions_not_expandable():
 def test_expand_piecewise_relationals_skips_cfunctions():
     """Piecewise arguments of CFunctions are not expanded.
 
-    Their conditions need not be evaluated at the current time.
+    Their semantics are unknown to the expansion.
     """
     x = sp.Symbol("x", real=True)
     pw = sp.Piecewise((2, x > 0), (3, True))
-    for rel in (delay(pw, 1) > 2.5, rate_of(pw) + 1 > 2.5):
+    for rel in (rate_of(pw) > 2.5, rate_of(pw) + 1 > 2.5):
         assert _expand_piecewise_relationals(rel) == rel
     # the piecewise outside the CFunction is expanded
-    rel = delay(pw, 1) > pw
+    rel = rate_of(pw) > pw
     assert _expand_piecewise_relationals(rel) == (
-        (x > 0) & (delay(pw, 1) > 2) | (x <= 0) & (delay(pw, 1) > 3)
+        (x > 0) & (rate_of(pw) > 2) | (x <= 0) & (rate_of(pw) > 3)
     )
 
 
@@ -763,3 +763,68 @@ def test_evaluate_false_unaffected_constructions():
         sp.StrictLessThan(1, x, evaluate=False),
         sp.StrictLessThan(x, 3, evaluate=False),
     )
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_delayed_piecewise_in_condition(evaluate):
+    """Delayed piecewise expressions in piecewise conditions are rejected.
+
+    sympy would evaluate their conditions at the current time.
+    """
+    parser = SBMLMathMLParser(evaluate=evaluate, ignore_units=True)
+
+    def parse(formula):
+        return parser.parse_str(
+            libsbml.writeMathMLToString(libsbml.parseL3Formula(formula))
+        )
+
+    for formula in (
+        "piecewise(1, delay(piecewise(2, x > 0, 3), 1) > 2.5, 0)",
+        "piecewise(1, delay(piecewise(2, x > 0, 3), 1), 0)",
+        "piecewise(1, f(delay(piecewise(2, x > 0, 3), 1)) > 2.5, 0)",
+        "gt(delay(piecewise(2, x > 0, 3), 1), 2.5) + 1",
+        "piecewise(1, delay(piecewise(2, x > 0, 3), 1) > 2.5 && y > 0, 0)",
+        # quotient and rem create piecewise conditions with their operands
+        "quotient(delay(piecewise(2, x > 0, 3), 1), 2)",
+        "rem(5, delay(piecewise(2, x > 0, 3), 1))",
+        # Booleans and quotient are represented as piecewise
+        "piecewise(1, delay(x > 0, 1), 0)",
+        "piecewise(1, delay(quotient(x, 2), 1) > 0, 0)",
+    ):
+        with pytest.raises(NotImplementedError, match="delay"):
+            parse(formula)
+
+    # pint.Quantity operands
+    parser.ignore_units = False
+    with pytest.raises(NotImplementedError, match="delay"):
+        parse(
+            "quotient(delay(piecewise(2, x > 0, 3), 1) * 2 dimensionless, 2)"
+        )
+    parser.ignore_units = True
+
+    # delay csymbols are identified by their definitionURL, not by their name
+    mathml = libsbml.writeMathMLToString(
+        libsbml.parseL3Formula(
+            "piecewise(1, delay(piecewise(2, x > 0, 3), 1) > 2.5, 0)"
+        )
+    )
+    assert mathml.count("> delay <") == 1
+    with pytest.raises(NotImplementedError, match="delay"):
+        parser.parse_str(mathml.replace("> delay <", "> mydelay <"))
+
+    # still supported
+    x, y = sp.symbols("x y")
+    pw = sp.Piecewise((2, x > 0), (3, True))
+    assert parse("delay(piecewise(2, x > 0, 3), 1) + 1").has(delay(pw, 1))
+    assert not parse("piecewise(1, delay(x, 1) > 0, 0)").has(sp.ITE)
+    assert parse("piecewise(delay(piecewise(2, x > 0, 3), 1), y > 0, 0)").has(
+        delay(pw, 1)
+    )
+    # piecewise delay time: evaluated at the current time
+    #  (with evaluate=False, sympy's piecewise folding fails)
+    if not evaluate:
+        return
+    expr = parse("piecewise(1, delay(x, piecewise(1, y > 0, 2)) > 2.5, 0)")
+    for y_val, delay_time in ((1, 1), (-1, 2)):
+        assert expr.subs({y: y_val, delay(x, delay_time): 3}) == 1
+        assert expr.subs({y: y_val, delay(x, delay_time): 2}) == 0

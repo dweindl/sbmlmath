@@ -21,7 +21,7 @@ from sympy.logic.boolalg import (
 )
 
 from . import _DEFAULT_SBML_LEVEL, _DEFAULT_SBML_VERSION
-from .cfunction import CFunction
+from .cfunction import DEF_URL_DELAY, CFunction
 from .csymbol import CSymbol
 from .species_symbol import SpeciesSymbol
 
@@ -152,6 +152,9 @@ def _quotient(a, b, evaluate: bool = False):
     # MathML `<quotient/>` truncates toward zero (MathML 2.0 Appendix C,
     #  MathML 3.0 §4.4.2.1), unlike `floor(a / b)` for operands with
     #  different signs.
+    # the sign conditions below contain `a` and `b`
+    _check_no_delayed_piecewise(a)
+    _check_no_delayed_piecewise(b)
     with sp.evaluate(evaluate):
         q = _strip_dimensionless(a / b)
         return sp.Piecewise(
@@ -879,25 +882,57 @@ def _expand_piecewise_relationals(
     -> (c1 & rel(v1)) | (~c1 & c2 & rel(v2)) | ...``
 
     Applied recursively until no Piecewise is left.
-    Piecewise subexpressions of :class:`CFunction` calls are left as is,
-    as their conditions need not be evaluated at the current time
-    (e.g., ``delay``).
+    Piecewise subexpressions of :class:`CFunction` calls are not expanded,
+    as their semantics are unknown here. Note that sympy will still fold
+    them when building the Piecewise.
 
     Used for Boolean expressions that become Piecewise conditions
     (including those created by :func:`_bool2num`), which sympy would
     otherwise fold itself, which fails for unevaluated expressions.
     The result may grow exponentially with the number of Piecewise
     subexpressions of a relational.
+
+    :raises NotImplementedError:
+        If `expr` contains a ``delay`` call with a Piecewise argument.
     """
     if not expr.has(Piecewise):
         # avoid changing the global flag (clears the cache)
         return expr
+    _check_no_delayed_piecewise(expr)
     with sp.evaluate(evaluate):
         return expr.replace(
             lambda e: isinstance(e, sp.core.relational.Relational)
             and e.has(Piecewise),
             lambda rel: _try_expand_piecewise_relational(rel, evaluate),
         )
+
+
+def _check_no_delayed_piecewise(cond: sp.Basic) -> None:
+    """Raise if a Piecewise condition contains a delayed Piecewise.
+
+    sympy folds Piecewise subexpressions of Piecewise conditions, also out
+    of ``delay`` calls, so their conditions would be evaluated at the
+    current time instead of the delayed time.
+    The delay time is evaluated at the current time, so folding Piecewise
+    out of it is fine.
+    """
+    if _is_quantity(cond):
+        cond = cond.magnitude
+    if not isinstance(cond, sp.Basic) or not cond.has(Piecewise):
+        return
+    for e in sp.preorder_traversal(cond):
+        if (
+            isinstance(e.func, CFunction)
+            and e.func.definition_url == DEF_URL_DELAY
+            and e.args
+            and e.args[0].has(Piecewise)
+        ):
+            raise NotImplementedError(
+                "`delay` of a piecewise expression (including Boolean "
+                "expressions, `quotient` and `rem`, which are represented "
+                "as piecewise) is not supported in piecewise conditions or "
+                f"`quotient`/`rem`: {e}"
+            )
 
 
 def _try_expand_piecewise_relational(
