@@ -96,6 +96,18 @@ def _strip_dimensionless(x):
     return x
 
 
+def _quotient(a, b, evaluate: bool = False):
+    # MathML `<quotient/>` truncates toward zero (MathML 2.0 Appendix C,
+    #  MathML 3.0 §4.4.2.1), unlike `floor(a / b)` for operands with
+    #  different signs.
+    with sp.evaluate(evaluate):
+        q = _strip_dimensionless(a / b)
+        return sp.Piecewise(
+            (sp.ceiling(q), sp.Xor(a < 0, b < 0)),
+            (sp.floor(q), True),
+        )
+
+
 def _rem(a, b, evaluate: bool = False):
     # SBML `<rem/>` uses C/truncated-division semantics (sign follows the
     #  dividend), unlike sympy.Mod (floored, sign follows the divisor).
@@ -103,10 +115,7 @@ def _rem(a, b, evaluate: bool = False):
     #  levels/versions that don't support `<rem/>` directly, so both
     #  encodings of the same operator agree.
     with sp.evaluate(evaluate):
-        return sp.Piecewise(
-            (a - b * sp.ceiling(a / b), sp.Xor(a < 0, b < 0)),
-            (a - b * sp.floor(a / b), True),
-        )
+        return a - b * _quotient(a, b, evaluate=evaluate)
 
 
 mathml_op_sympy_trigonometric = {
@@ -455,13 +464,10 @@ class SBMLMathMLParser:
             return sp.log(x, base, evaluate=self.evaluate)
 
         if operator.tag == f"{{{mathml_ns}}}quotient":
-            # there is no direct correspondence for integer division in sympy,
-            # so we use modulo instead. this won't cycle.
-            # a // b = (a - a mod b) / b
+            # there is no direct correspondence for truncated integer
+            #  division in sympy. this won't cycle.
             assert len(operands) == 2
-            a, b = sym_operands
-            with sp.evaluate(self.evaluate):
-                return (a - a % b) / b
+            return _quotient(*sym_operands, evaluate=self.evaluate)
 
         name = self.preprocess_symbol_name(operator.text.strip(), operator)
 

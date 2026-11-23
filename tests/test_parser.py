@@ -69,6 +69,79 @@ def test_mathmlparser_rem_vs_piecewise(a, b):
 
 
 @pytest.mark.parametrize("evaluate", (True, False))
+@pytest.mark.parametrize(
+    ("a", "b"),
+    (
+        (-7, 3),
+        (7, 3),
+        (-7, -3),
+        (7, -3),
+        (6, 3),
+        (-6, 3),
+        (0, 3),
+        (-3.5, 2),
+    ),
+)
+def test_quotient(a, b, evaluate):
+    """`<quotient/>` truncates toward zero and is consistent with `<rem/>`.
+
+    https://github.com/dweindl/sbmlmath/issues/70
+    """
+
+    def cn(x):
+        type_ = "integer" if isinstance(x, int) else "real"
+        return f'<cn type="{type_}">{x}</cn>'
+
+    def apply(op):
+        return (
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            f"<apply><{op}/>{cn(a)}{cn(b)}</apply></math>"
+        )
+
+    parser = SBMLMathMLParser(evaluate=evaluate)
+    q = parser.parse_str(apply("quotient")).doit()
+    r = parser.parse_str(apply("rem")).doit()
+
+    assert q == int(a / b)
+    assert sp.simplify(b * q + r - a) == 0
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_quotient_rem_units(evaluate):
+    """`<quotient/>` and `<rem/>` work for operands with units."""
+
+    def apply(op):
+        return (
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" '
+            'xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">'
+            f'<apply><{op}/><cn sbml:units="second">-7</cn>'
+            '<cn sbml:units="second">3</cn></apply></math>'
+        )
+
+    parser = SBMLMathMLParser(evaluate=evaluate)
+    assert parser.parse_str(apply("quotient")).doit() == -2
+    assert parser.parse_str(apply("rem")).doit() == -1
+
+
+def test_quotient_symbolic():
+    """`<quotient/>` with symbolic operands evaluates correctly after
+    substitution.
+
+    https://github.com/dweindl/sbmlmath/issues/70
+    """
+    mathml = (
+        '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        "<apply><quotient/><ci>a</ci><ci>b</ci></apply></math>"
+    )
+    expr = SBMLMathMLParser().parse_str(mathml)
+    a, b = sp.symbols("a b")
+    assert expr.free_symbols == {a, b}
+    assert expr.subs({a: -7, b: 3}) == -2
+    assert expr.subs({a: 7, b: -3}) == -2
+    assert expr.subs({a: -7, b: -3}) == 2
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
 def test_not(evaluate):
     """`<not/>` yields Boolean expressions, also for numeric operands.
 
