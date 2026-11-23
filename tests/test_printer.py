@@ -81,8 +81,11 @@ def test_print_log_with_base():
     ast = libsbml.readMathMLFromString(SBMLMathMLPrinter().doprint(expr))
     assert libsbml.formulaToL3String(ast) == "log(2 dimensionless, x)"
 
+    # parsed back as unevaluated `log(x)/log(2)`
     parser = SBMLMathMLParser(evaluate=False)
-    assert parser.parse_str(SBMLMathMLPrinter().doprint(expr)) == expr
+    parsed = parser.parse_str(SBMLMathMLPrinter().doprint(expr))
+    assert parsed == sp.Mul(sp.log(x), sp.Pow(sp.log(2), -1), evaluate=False)
+    assert parsed.doit() == expr.doit()
 
 
 def test_print_ite():

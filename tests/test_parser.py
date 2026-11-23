@@ -514,3 +514,22 @@ def test_non_mathml_element():
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
             '<foo xmlns="urn:x"/></math>'
         )
+
+
+@pytest.mark.parametrize("evaluate", (True, False))
+def test_log_with_base_is_differentiable(evaluate):
+    """`<log/>` with `<logbase>` doesn't yield SymPy's two-argument `log`.
+
+    SymPy's `diff` and code printers ignore the base of an unevaluated
+    `log(x, base)`.
+    """
+    x = sp.Symbol("x")
+    parser = SBMLMathMLParser(evaluate=evaluate)
+    expr = parser.parse_str(
+        '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        '<apply><log/><logbase><cn type="integer">2</cn></logbase>'
+        "<ci>x</ci></apply></math>"
+    )
+    assert all(len(f.args) == 1 for f in expr.atoms(sp.log))
+    assert sp.simplify(expr.diff(x) - 1 / (x * sp.log(2))) == 0
+    assert sp.ccode(expr) == "log(x)/M_LN2"

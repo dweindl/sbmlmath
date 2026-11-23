@@ -498,8 +498,14 @@ class SBMLMathMLParser:
                     "<log> expects <logbase> as first of 2 operands.",
                 )
                 base, x = sym_operands
-            # with evaluate=True, this becomes ``log(x)/log(base)``
-            return sp.log(x, base, evaluate=self.evaluate)
+            if self.evaluate:
+                return sp.log(x, base)
+            # SymPy's two-argument `log(x, base)` evaluates to
+            #  `log(x)/log(base)`. Left unevaluated, it is not handled
+            #  correctly by, e.g., `diff` or code printers, which ignore
+            #  the base.
+            with sp.evaluate(False):
+                return sp.log(x) / sp.log(base)
 
         if operator.tag == f"{{{mathml_ns}}}quotient":
             # there is no direct correspondence for truncated integer
