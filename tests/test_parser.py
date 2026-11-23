@@ -1,3 +1,6 @@
+import subprocess
+import sys
+
 import libsbml
 import pytest
 import sympy as sp
@@ -442,3 +445,20 @@ def test_log_default_base(evaluate):
         "log10(x)",
         "ln(x) / ln(10 dimensionless)",
     }
+
+
+def test_invalid_input_rejected_without_assertions():
+    """Malformed input is rejected also when running with `python -O`."""
+    code = (
+        "from sbmlmath import SBMLMathMLParser\n"
+        "SBMLMathMLParser().parse_str("
+        '\'<math xmlns="http://www.w3.org/1998/Math/MathML">'
+        "<apply><log/><logbase><cn>2</cn></logbase></apply></math>')\n"
+    )
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-O", "-c", code],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "ValueError: Failed parsing" in result.stderr

@@ -54,6 +54,15 @@ def _is_quantity(x) -> bool:
     return pint is not None and isinstance(x, pint.Quantity)
 
 
+def _require(condition: bool) -> None:
+    """Raise if a condition on the MathML input is not met.
+
+    Unlike ``assert``, not disabled by ``python -O``.
+    """
+    if not condition:
+        raise ValueError("Invalid or unsupported MathML.")
+
+
 # some operator implementations to handle `evaluate`
 #  *and* be compatible with non Expr operands
 # (non-Expr is deprecated for Add, Mul, Pow, ...)
@@ -445,27 +454,27 @@ class SBMLMathMLParser:
             raise AssertionError(list(element))
 
         if operator.tag == f"{{{mathml_ns}}}root":
-            assert len(sym_operands) in {1, 2}
+            _require(len(sym_operands) in {1, 2})
             if len(sym_operands) == 1:
                 # defaults to sqrt
                 degree = 2
             else:
                 degree = sym_operands[0]
-                assert operands[0].tag == f"{{{mathml_ns}}}degree"
+                _require(operands[0].tag == f"{{{mathml_ns}}}degree")
 
             with sp.evaluate(self.evaluate):
                 return sym_operands[-1] ** (1 / degree)
 
         if operator.tag == f"{{{mathml_ns}}}log":
-            assert len(operands) in {1, 2}
+            _require(len(operands) in {1, 2})
             if len(operands) == 1:
                 # defaults to log10
-                assert operands[0].tag != f"{{{mathml_ns}}}logbase"
+                _require(operands[0].tag != f"{{{mathml_ns}}}logbase")
                 base = sp.Integer(10)
                 x = sym_operands[0]
             else:
-                assert operands[0].tag == f"{{{mathml_ns}}}logbase"
-                assert len(operands[0]) == 1
+                _require(operands[0].tag == f"{{{mathml_ns}}}logbase")
+                _require(len(operands[0]) == 1)
                 base, x = sym_operands
             # with evaluate=True, this becomes ``log(x)/log(base)``
             return sp.log(x, base, evaluate=self.evaluate)
@@ -473,21 +482,21 @@ class SBMLMathMLParser:
         if operator.tag == f"{{{mathml_ns}}}quotient":
             # there is no direct correspondence for truncated integer
             #  division in sympy. this won't cycle.
-            assert len(operands) == 2
+            _require(len(operands) == 2)
             return _quotient(*sym_operands, evaluate=self.evaluate)
 
         name = self.preprocess_symbol_name(operator.text.strip(), operator)
 
         if operator.tag == f"{{{mathml_ns}}}csymbol":
             # examples: rateOf, delay, distributions from distrib package
-            assert operator.attrib["encoding"] == "text"
+            _require(operator.attrib["encoding"] == "text")
             return CFunction(
                 name,
                 definition_url=operator.attrib["definitionURL"],
             )(*sym_operands)
 
         if operator.tag == f"{{{mathml_ns}}}ci":
-            assert not operator.attrib
+            _require(not operator.attrib)
             return sp.Function(name, real=True)(*sym_operands)
 
         raise NotImplementedError(f"Unsupported operator {operator.tag}.")
@@ -587,7 +596,7 @@ class SBMLMathMLParser:
             #   Nested piecewise functions may work, though, if the inner
             #   expressions are all Boolean
             if e.tag == f"{{{mathml_ns}}}piece":
-                assert len(e) == 2
+                _require(len(e) == 2)
                 cond = self._parse_element(e[1])
                 # Only Boolean conditions are supported
                 #  -> convert
@@ -598,8 +607,8 @@ class SBMLMathMLParser:
                 )
             elif e.tag == f"{{{mathml_ns}}}otherwise":
                 # may occur only as last condition
-                assert e is element[-1]
-                assert len(e) == 1
+                _require(e is element[-1])
+                _require(len(e) == 1)
                 expr_cond_pairs.append(
                     (self._parse_element(e[0]), True),
                 )
@@ -614,8 +623,8 @@ class SBMLMathMLParser:
         # collect arguments / bound variables
         args = []
         for e in element[:-1]:
-            assert e.tag == f"{{{mathml_ns}}}bvar"
-            assert len(e) == 1
+            _require(e.tag == f"{{{mathml_ns}}}bvar")
+            _require(len(e) == 1)
             args.append(self._parse_element(e[0]))
 
         # Bound variables may be Boolean, depending on the call site.
@@ -629,15 +638,15 @@ class SBMLMathMLParser:
         return sp.Lambda(tuple(args), rhs)
 
     def handle_degree(self, element: etree._Element) -> sp.Expr:
-        assert len(element) == 1
+        _require(len(element) == 1)
         return self._parse_element(element[0])
 
     def handle_logbase(self, element: etree._Element) -> sp.Expr:
-        assert len(element) == 1
+        _require(len(element) == 1)
         return self._parse_element(element[0])
 
     def handle_csymbol(self, element: etree._Element) -> sp.Expr:
-        assert element.attrib["encoding"] == "text"
+        _require(element.attrib["encoding"] == "text")
         return CSymbol(
             self.preprocess_symbol_name(element.text.strip(), element),
             encoding=element.attrib["encoding"],
